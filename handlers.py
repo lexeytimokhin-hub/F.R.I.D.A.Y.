@@ -1,4 +1,4 @@
-# handlers.py - ПОЛНАЯ ВЕРСИЯ С АВТОРАСШИФРОВКОЙ
+# handlers.py - ПОЛНАЯ ВЕРСИЯ С ИСПРАВЛЕННОЙ АВТОРАСШИФРОВКОЙ
 import telebot
 from telebot import types
 import time
@@ -8,6 +8,10 @@ from cipher import Cipher
 from database import Database
 from keyboards import *
 from utils import *
+
+# Добавляем недостающий эмодзи если его нет в config.py
+if 'search' not in EMOJIS:
+    EMOJIS['search'] = '🔎'
 
 bot = telebot.TeleBot(TOKEN)
 db = Database()
@@ -144,7 +148,7 @@ def decrypt_text(message):
     bot.send_message(
         user_id,
         f"{EMOJIS['decipher']} *Авторасшифровка*\n\n"
-        f"🔍 Отправьте зашифрованное сообщение.\n"
+        f"{EMOJIS['search']} Отправьте зашифрованное сообщение.\n"
         f"Я **сам найду** нужный шифр среди всех ваших шифров!\n\n"
         f"*Как это работает:*\n"
         f"• Проанализирую все ваши шифры\n"
@@ -717,6 +721,94 @@ def handle_callbacks(call):
             reply_markup=get_back_keyboard()
         )
         return
+    
+    # ===== ВЫБОР ВАРИАНТА РАСШИФРОВКИ =====
+    if data.startswith("choose_decrypt_"):
+        parts = data.split("_")
+        cipher_id = int(parts[2])
+        option_num = int(parts[3])
+        
+        if f"decrypt_results_{user_id}" in temp_data:
+            results = temp_data[f"decrypt_results_{user_id}"]['results']
+            encrypted = temp_data[f"decrypt_results_{user_id}"]['encrypted']
+            
+            # Находим выбранный результат
+            selected = next((r for r in results if r['cipher_id'] == cipher_id), None)
+            
+            if selected:
+                # Сохраняем в историю
+                db.add_to_history(
+                    user_id,
+                    selected['cipher_id'],
+                    selected['decrypted'],
+                    encrypted,
+                    'decrypt'
+                )
+                
+                result_text = f"{EMOJIS['decipher']} *Расшифровано*\n\n"
+                result_text += f"🔑 Шифр: *{selected['cipher_name']}*\n"
+                result_text += f"📊 Точность: {selected['score']:.1f}%\n\n"
+                result_text += f"📝 Результат:\n`{selected['decrypted']}`\n\n"
+                
+                if selected['error_list']:
+                    result_text += f"⚠️ Неопознано: {', '.join(selected['error_list'][:10])}"
+                
+                bot.edit_message_text(
+                    result_text,
+                    user_id,
+                    call.message.message_id,
+                    parse_mode='Markdown'
+                )
+                
+                # Добавляем кнопку для повторной расшифровки
+                keyboard = types.InlineKeyboardMarkup()
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['decipher']} Ещё расшифровать",
+                    callback_data="decrypt_again"
+                ))
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['back']} В меню",
+                    callback_data="back_to_main"
+                ))
+                
+                bot.send_message(
+                    user_id,
+                    "Что дальше?",
+                    reply_markup=keyboard
+                )
+                
+                del temp_data[f"decrypt_results_{user_id}"]
+        
+        return
+    
+    # ===== ОТМЕНА РАСШИФРОВКИ =====
+    if data == "cancel_decrypt":
+        if f"decrypt_results_{user_id}" in temp_data:
+            del temp_data[f"decrypt_results_{user_id}"]
+        if f"decrypt_{user_id}" in temp_data:
+            del temp_data[f"decrypt_{user_id}"]
+        
+        bot.edit_message_text(
+            f"{EMOJIS['info']} Расшифровка отменена",
+            user_id,
+            call.message.message_id,
+            reply_markup=None
+        )
+        return
+    
+    # ===== ПОВТОРНАЯ РАСШИФРОВКА =====
+    if data == "decrypt_again":
+        bot.delete_message(user_id, call.message.message_id)
+        
+        # Создаем новое сообщение как при нажатии кнопки "Расшифровать"
+        fake_message = type('obj', (object,), {
+            'from_user': type('obj', (object,), {'id': user_id}),
+            'chat': type('obj', (object,), {'id': user_id}),
+            'message_id': None,
+            'text': f"{EMOJIS['decipher']} Расшифровать"
+        })
+        decrypt_text(fake_message)
+        return
 
 # ============================================
 # ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ
@@ -862,6 +954,7 @@ def handle_messages(message):
                     message, 
                     f"{EMOJIS['error']} У вас нет шифров для расшифровки!"
                 )
+                del temp_data[f"decrypt_{user_id}"]
                 return
             
             # Отправляем сообщение о начале поиска
@@ -965,86 +1058,6 @@ def handle_messages(message):
                 parse_mode='Markdown',
                 reply_markup=keyboard
             )
-    
-    # ===== ВЫБОР ВАРИАНТА РАСШИФРОВКИ =====
-    elif data.startswith("choose_decrypt_"):
-        parts = data.split("_")
-        cipher_id = int(parts[2])
-        option_num = int(parts[3])
-        
-        if f"decrypt_results_{user_id}" in temp_data:
-            results = temp_data[f"decrypt_results_{user_id}"]['results']
-            encrypted = temp_data[f"decrypt_results_{user_id}"]['encrypted']
-            
-            # Находим выбранный результат
-            selected = next((r for r in results if r['cipher_id'] == cipher_id), None)
-            
-            if selected:
-                # Сохраняем в историю
-                db.add_to_history(
-                    user_id,
-                    selected['cipher_id'],
-                    selected['decrypted'],
-                    encrypted,
-                    'decrypt'
-                )
-                
-                result_text = f"{EMOJIS['decipher']} *Расшифровано*\n\n"
-                result_text += f"🔑 Шифр: *{selected['cipher_name']}*\n"
-                result_text += f"📊 Точность: {selected['score']:.1f}%\n\n"
-                result_text += f"📝 Результат:\n`{selected['decrypted']}`\n\n"
-                
-                if selected['error_list']:
-                    result_text += f"⚠️ Неопознано: {', '.join(selected['error_list'][:10])}"
-                
-                bot.edit_message_text(
-                    result_text,
-                    user_id,
-                    call.message.message_id,
-                    parse_mode='Markdown'
-                )
-                
-                # Добавляем кнопку для повторной расшифровки
-                keyboard = types.InlineKeyboardMarkup()
-                keyboard.add(types.InlineKeyboardButton(
-                    f"{EMOJIS['decipher']} Ещё расшифровать",
-                    callback_data="decrypt_again"
-                ))
-                keyboard.add(types.InlineKeyboardButton(
-                    f"{EMOJIS['back']} В меню",
-                    callback_data="back_to_main"
-                ))
-                
-                bot.send_message(
-                    user_id,
-                    "Что дальше?",
-                    reply_markup=keyboard
-                )
-                
-                del temp_data[f"decrypt_results_{user_id}"]
-        
-        return
-    
-    # ===== ОТМЕНА РАСШИФРОВКИ =====
-    elif data == "cancel_decrypt":
-        if f"decrypt_results_{user_id}" in temp_data:
-            del temp_data[f"decrypt_results_{user_id}"]
-        if f"decrypt_{user_id}" in temp_data:
-            del temp_data[f"decrypt_{user_id}"]
-        
-        bot.edit_message_text(
-            f"{EMOJIS['info']} Расшифровка отменена",
-            user_id,
-            call.message.message_id,
-            reply_markup=None
-        )
-        return
-    
-    # ===== ПОВТОРНАЯ РАСШИФРОВКА =====
-    elif data == "decrypt_again":
-        bot.delete_message(user_id, call.message.message_id)
-        decrypt_text(call.message)
-        return
     
     else:
         bot.reply_to(
