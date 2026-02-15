@@ -1,4 +1,4 @@
-# handlers.py - ПОЛНАЯ ВЕРСИЯ С QR-КОДОМ
+# handlers.py - ПОЛНАЯ ВЕРСИЯ С АВТОРАСШИФРОВКОЙ
 import telebot
 from telebot import types
 import time
@@ -38,12 +38,12 @@ def cmd_start(message):
 • {EMOJIS['share']} Делиться шифрами с друзьями
 • {EMOJIS['import']} Принимать чужие шифры
 • 🔗 Ссылки-приглашения
-• 📱 QR-коды для быстрого обмена
+• 🔍 **АВТОРАСШИФРОВКА** - бот сам найдёт нужный шифр!
 
 *Как начать:*
 1. Создайте шифр в разделе "Мои шифры"
 2. Нажмите "Поделиться" чтобы отправить другу
-3. Друг перейдет по ссылке или отсканирует QR-код
+3. Друг перейдет по ссылке и получит шифр
     """
     
     bot.send_message(
@@ -134,6 +134,7 @@ def encrypt_text(message):
 
 @bot.message_handler(func=lambda message: message.text == f"{EMOJIS['decipher']} Расшифровать")
 def decrypt_text(message):
+    """УЛУЧШЕННАЯ АВТОРАСШИФРОВКА"""
     user_id = message.from_user.id
     
     temp_data[f"decrypt_{user_id}"] = {
@@ -142,8 +143,13 @@ def decrypt_text(message):
     
     bot.send_message(
         user_id,
-        f"{EMOJIS['decipher']} *Расшифровка*\n\n"
-        f"Отправьте зашифрованное сообщение:",
+        f"{EMOJIS['decipher']} *Авторасшифровка*\n\n"
+        f"🔍 Отправьте зашифрованное сообщение.\n"
+        f"Я **сам найду** нужный шифр среди всех ваших шифров!\n\n"
+        f"*Как это работает:*\n"
+        f"• Проанализирую все ваши шифры\n"
+        f"• Найду шифр с наибольшим совпадением\n"
+        f"• Покажу результат и точность распознавания",
         parse_mode='Markdown',
         reply_markup=get_back_keyboard()
     )
@@ -224,7 +230,7 @@ def show_help(message):
 
 *📝 Основные команды:*
 • Зашифровать - превратить текст в шифр
-• Расшифровать - восстановить текст
+• Расшифровать - восстановить текст (автоподбор шифра)
 • Мои шифры - управление шифрами
 
 *📤 Как поделиться шифром:*
@@ -240,6 +246,9 @@ def show_help(message):
 • Перейдите по ссылке от друга
 • Отсканируйте QR-код
 • Или нажмите "Импорт" и вставьте код
+
+*🔍 Авторасшифровка:*
+Бот сам найдет нужный шифр среди всех ваших!
     """
     
     bot.send_message(
@@ -427,37 +436,31 @@ def handle_callbacks(call):
         )
         return
     
-    # ===== QR-КОД (НОВАЯ ФУНКЦИЯ!) =====
+    # ===== QR-КОД =====
     if data.startswith("share_qr_"):
         cipher_id = int(data.split("_")[2])
         
         try:
-            # Импортируем библиотеку для QR
             import qrcode
             from io import BytesIO
             
-            # Создаем ссылку
             bot_username = bot.get_me().username
             invite_link = f"https://t.me/{bot_username}?start=shared_cipher_{cipher_id}"
             
-            # Генерируем QR-код
             qr = qrcode.QRCode(version=1, box_size=10, border=5)
             qr.add_data(invite_link)
             qr.make(fit=True)
             
             img = qr.make_image(fill_color="black", back_color="white")
             
-            # Сохраняем в байты
             bio = BytesIO()
             bio.name = 'qr_code.png'
             img.save(bio, 'PNG')
             bio.seek(0)
             
-            # Получаем название шифра
             cipher_data = db.get_cipher(cipher_id)
             cipher = Cipher.from_dict(cipher_data)
             
-            # Отправляем фото
             bot.send_photo(
                 user_id,
                 photo=bio,
@@ -467,10 +470,8 @@ def handle_callbacks(call):
                 parse_mode='Markdown'
             )
             
-            # Удаляем предыдущее сообщение
             bot.delete_message(user_id, call.message.message_id)
             
-            # Отправляем клавиатуру для возврата
             keyboard = types.InlineKeyboardMarkup()
             keyboard.add(types.InlineKeyboardButton(
                 f"{EMOJIS['back']} К шифру", 
@@ -848,7 +849,7 @@ def handle_messages(message):
             
             del temp_data[f"encrypt_{user_id}"]
     
-    # ===== РАСШИФРОВКА =====
+    # ===== УЛУЧШЕННАЯ АВТОРАСШИФРОВКА =====
     elif f"decrypt_{user_id}" in temp_data:
         state = temp_data[f"decrypt_{user_id}"]
         
@@ -863,45 +864,187 @@ def handle_messages(message):
                 )
                 return
             
+            # Отправляем сообщение о начале поиска
+            searching_msg = bot.reply_to(
+                message,
+                f"{EMOJIS['search']} 🔍 Ищу подходящий шифр..."
+            )
+            
+            # АНАЛИЗИРУЕМ ВСЕ ШИФРЫ
             results = []
+            
             for cipher_info in ciphers:
                 cipher = Cipher.from_dict(cipher_info['data'])
                 decrypted, errors = cipher.decrypt(encrypted)
                 
-                if len(errors) < len(encrypted) * 0.3:
-                    results.append({
-                        'cipher': cipher,
-                        'decrypted': decrypted,
-                        'errors': errors,
-                        'cipher_id': cipher_info['id']
-                    })
+                # Вычисляем процент распознанных символов
+                total_chars = len(encrypted)
+                error_chars = len(errors)
+                
+                if total_chars > 0:
+                    score = (total_chars - error_chars) / total_chars * 100
+                else:
+                    score = 0
+                
+                results.append({
+                    'cipher': cipher,
+                    'decrypted': decrypted,
+                    'errors': errors,
+                    'cipher_id': cipher_info['id'],
+                    'cipher_name': cipher_info['name'],
+                    'score': score,
+                    'error_chars': error_chars,
+                    'error_list': errors
+                })
+            
+            # Удаляем сообщение о поиске
+            bot.delete_message(user_id, searching_msg.message_id)
             
             if not results:
                 bot.reply_to(
                     message,
-                    f"{EMOJIS['error']} Не удалось расшифровать!"
+                    f"{EMOJIS['error']} Не удалось расшифровать ни одним шифром!"
                 )
+                del temp_data[f"decrypt_{user_id}"]
                 return
             
-            for result in results[:3]:
-                result_text = f"{EMOJIS['decipher']} *Расшифровано шифром:*\n"
-                result_text += f"🔑 *{result['cipher'].name}*\n\n"
-                result_text += f"`{result['decrypted']}`\n\n"
+            # СОРТИРУЕМ ПО ЛУЧШЕМУ СОВПАДЕНИЮ (от лучшего к худшему)
+            results.sort(key=lambda x: x['score'], reverse=True)
+            best = results[0]
+            
+            # Если лучший результат очень плохой (меньше 30%)
+            if best['score'] < 30:
+                response = f"{EMOJIS['warning']} *Не удалось точно определить шифр*\n\n"
+                response += f"📊 Лучшее совпадение: *{best['cipher_name']}* "
+                response += f"({best['score']:.1f}% распознано)\n\n"
+                response += f"📝 Результат:\n`{best['decrypted']}`\n\n"
+                response += f"❌ Неопознанные символы: {', '.join(best['error_list'][:10])}"
+                if len(best['error_list']) > 10:
+                    response += f" и еще {len(best['error_list'])-10}"
                 
-                if result['errors']:
-                    result_text += f"{EMOJIS['warning']} *Неопознано:* {''.join(set(result['errors']))}"
-                
+                bot.reply_to(message, response, parse_mode='Markdown')
+                del temp_data[f"decrypt_{user_id}"]
+                return
+            
+            # ПОКАЗЫВАЕМ ТОП-3 ЛУЧШИХ РЕЗУЛЬТАТА
+            response = f"{EMOJIS['decipher']} *Авторасшифровка*\n\n"
+            response += f"🔍 Найдено {len(results)} вариантов\n\n"
+            
+            for i, res in enumerate(results[:3], 1):
+                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+                response += f"{medal} *Вариант {i}:* {res['cipher_name']}\n"
+                response += f"   Точность: {res['score']:.1f}%\n"
+                response += f"   Результат: `{res['decrypted'][:50]}`"
+                if len(res['decrypted']) > 50:
+                    response += "..."
+                response += "\n\n"
+            
+            # Добавляем кнопки для выбора варианта
+            keyboard = types.InlineKeyboardMarkup(row_width=3)
+            buttons = []
+            for i, res in enumerate(results[:3], 1):
+                buttons.append(types.InlineKeyboardButton(
+                    f"{i}", 
+                    callback_data=f"choose_decrypt_{res['cipher_id']}_{i}"
+                ))
+            keyboard.add(*buttons)
+            keyboard.add(types.InlineKeyboardButton(
+                f"{EMOJIS['back']} Отмена", 
+                callback_data="cancel_decrypt"
+            ))
+            
+            # Сохраняем результаты для последующего выбора
+            temp_data[f"decrypt_results_{user_id}"] = {
+                'results': results[:3],
+                'encrypted': encrypted
+            }
+            
+            bot.send_message(
+                user_id,
+                response + "Выберите номер варианта:",
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+    
+    # ===== ВЫБОР ВАРИАНТА РАСШИФРОВКИ =====
+    elif data.startswith("choose_decrypt_"):
+        parts = data.split("_")
+        cipher_id = int(parts[2])
+        option_num = int(parts[3])
+        
+        if f"decrypt_results_{user_id}" in temp_data:
+            results = temp_data[f"decrypt_results_{user_id}"]['results']
+            encrypted = temp_data[f"decrypt_results_{user_id}"]['encrypted']
+            
+            # Находим выбранный результат
+            selected = next((r for r in results if r['cipher_id'] == cipher_id), None)
+            
+            if selected:
+                # Сохраняем в историю
                 db.add_to_history(
-                    user_id, 
-                    result['cipher_id'], 
-                    result['decrypted'], 
-                    encrypted, 
+                    user_id,
+                    selected['cipher_id'],
+                    selected['decrypted'],
+                    encrypted,
                     'decrypt'
                 )
                 
-                bot.send_message(user_id, result_text, parse_mode='Markdown')
-            
+                result_text = f"{EMOJIS['decipher']} *Расшифровано*\n\n"
+                result_text += f"🔑 Шифр: *{selected['cipher_name']}*\n"
+                result_text += f"📊 Точность: {selected['score']:.1f}%\n\n"
+                result_text += f"📝 Результат:\n`{selected['decrypted']}`\n\n"
+                
+                if selected['error_list']:
+                    result_text += f"⚠️ Неопознано: {', '.join(selected['error_list'][:10])}"
+                
+                bot.edit_message_text(
+                    result_text,
+                    user_id,
+                    call.message.message_id,
+                    parse_mode='Markdown'
+                )
+                
+                # Добавляем кнопку для повторной расшифровки
+                keyboard = types.InlineKeyboardMarkup()
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['decipher']} Ещё расшифровать",
+                    callback_data="decrypt_again"
+                ))
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['back']} В меню",
+                    callback_data="back_to_main"
+                ))
+                
+                bot.send_message(
+                    user_id,
+                    "Что дальше?",
+                    reply_markup=keyboard
+                )
+                
+                del temp_data[f"decrypt_results_{user_id}"]
+        
+        return
+    
+    # ===== ОТМЕНА РАСШИФРОВКИ =====
+    elif data == "cancel_decrypt":
+        if f"decrypt_results_{user_id}" in temp_data:
+            del temp_data[f"decrypt_results_{user_id}"]
+        if f"decrypt_{user_id}" in temp_data:
             del temp_data[f"decrypt_{user_id}"]
+        
+        bot.edit_message_text(
+            f"{EMOJIS['info']} Расшифровка отменена",
+            user_id,
+            call.message.message_id,
+            reply_markup=None
+        )
+        return
+    
+    # ===== ПОВТОРНАЯ РАСШИФРОВКА =====
+    elif data == "decrypt_again":
+        bot.delete_message(user_id, call.message.message_id)
+        decrypt_text(call.message)
+        return
     
     else:
         bot.reply_to(
