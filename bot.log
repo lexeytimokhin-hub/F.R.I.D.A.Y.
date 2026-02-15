@@ -1,0 +1,213 @@
+2026-02-15 15:22:43,210 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:22:43,211 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:22:52,289 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:22:52,332 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:28:55,571 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:28:55,604 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:29:27,060 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:29:27,089 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:40:54,468 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:40:54,468 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:41:00,020 - __main__ - ERROR - Ошибка импорта модулей: cannot import name 'Database' from 'database' (C:\Users\User\Documents\F.R.I.D.A.Y\database.py)
+2026-02-15 15:41:00,024 - __main__ - ERROR - Убедитесь, что установлены все зависимости из requirements.txt
+2026-02-15 15:43:20,284 - __main__ - ERROR - Критическая ошибка: invalid syntax (database.py, line 237)
+2026-02-15 15:43:20,287 - __main__ - ERROR - Бот остановлен
+2026-02-15 15:44:22,268 - __main__ - INFO - ==================================================
+2026-02-15 15:44:22,295 - __main__ - INFO - Запуск CipherBot v1.0.0
+2026-02-15 15:44:22,299 - __main__ - INFO - ==================================================
+2026-02-15 15:44:22,304 - __main__ - INFO - Бот успешно запущен и готов к работе!
+2026-02-15 15:46:06,317 - TeleBot - ERROR - Threaded polling exception: A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+2026-02-15 15:46:06,339 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 154, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 10379, in _run_middlewares_and_handler
+    result = handler['function'](message)
+  File "C:\Users\User\Documents\F.R.I.D.A.Y\handlers.py", line 314, in handle_callbacks
+    bot.edit_message_text(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        f"{EMOJIS['key']} *{cipher.name}*\n\n"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        reply_markup=get_cipher_actions_keyboard(cipher_id, is_default)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 5396, in edit_message_text
+    result = apihelper.edit_message_text(
+        self.token, text, chat_id=chat_id, message_id=message_id, inline_message_id=inline_message_id,
+        parse_mode=parse_mode, entities=entities, reply_markup=reply_markup, link_preview_options=link_preview_options,
+        business_connection_id=business_connection_id, timeout=timeout)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 1647, in edit_message_text
+    return _make_request(token, method_url, params=payload, method='post')
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 168, in _make_request
+    json_result = _check_result(method_name, result)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 197, in _check_result
+    raise ApiTelegramException(method_name, result, result_json)
+telebot.apihelper.ApiTelegramException: A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+
+2026-02-15 15:53:25,909 - __main__ - INFO - ==================================================
+2026-02-15 15:53:25,915 - __main__ - INFO - Запуск CipherBot v1.0.0
+2026-02-15 15:53:25,921 - __main__ - INFO - ==================================================
+2026-02-15 15:53:25,932 - __main__ - INFO - Бот успешно запущен и готов к работе!
+2026-02-15 15:54:31,346 - TeleBot - ERROR - Infinity polling exception: Cipher.generate_random() takes 1 positional argument but 2 were given
+2026-02-15 15:54:31,375 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1110, in infinity_polling
+    self.polling(non_stop=True, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 logger_level=logger_level, allowed_updates=allowed_updates, restart_on_change=False,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 *args, **kwargs)
+                 ^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1198, in polling
+    self.__threaded_polling(non_stop=non_stop, interval=interval, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                            logger_level=logger_level, allowed_updates=allowed_updates)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1273, in __threaded_polling
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 154, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 10379, in _run_middlewares_and_handler
+    result = handler['function'](message)
+  File "C:\Users\User\Documents\F.R.I.D.A.Y\handlers.py", line 239, in handle_callbacks
+    cipher.generate_random("russian")
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+TypeError: Cipher.generate_random() takes 1 positional argument but 2 were given
+
+2026-02-15 15:54:35,643 - TeleBot - ERROR - Infinity polling exception: Cipher.generate_random() takes 1 positional argument but 2 were given
+2026-02-15 15:54:35,667 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1110, in infinity_polling
+    self.polling(non_stop=True, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 logger_level=logger_level, allowed_updates=allowed_updates, restart_on_change=False,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 *args, **kwargs)
+                 ^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1198, in polling
+    self.__threaded_polling(non_stop=non_stop, interval=interval, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                            logger_level=logger_level, allowed_updates=allowed_updates)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1273, in __threaded_polling
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 154, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 10379, in _run_middlewares_and_handler
+    result = handler['function'](message)
+  File "C:\Users\User\Documents\F.R.I.D.A.Y\handlers.py", line 239, in handle_callbacks
+    cipher.generate_random("russian")
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+TypeError: Cipher.generate_random() takes 1 positional argument but 2 were given
+
+2026-02-15 15:54:38,711 - TeleBot - ERROR - Infinity polling exception: Cipher.generate_random() takes 1 positional argument but 2 were given
+2026-02-15 15:54:38,738 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1110, in infinity_polling
+    self.polling(non_stop=True, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 logger_level=logger_level, allowed_updates=allowed_updates, restart_on_change=False,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 *args, **kwargs)
+                 ^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1198, in polling
+    self.__threaded_polling(non_stop=non_stop, interval=interval, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                            logger_level=logger_level, allowed_updates=allowed_updates)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1273, in __threaded_polling
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 154, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 10379, in _run_middlewares_and_handler
+    result = handler['function'](message)
+  File "C:\Users\User\Documents\F.R.I.D.A.Y\handlers.py", line 239, in handle_callbacks
+    cipher.generate_random("russian")
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+TypeError: Cipher.generate_random() takes 1 positional argument but 2 were given
+
+2026-02-15 15:54:51,498 - TeleBot - ERROR - Infinity polling exception: Cipher.generate_random() takes 1 positional argument but 2 were given
+2026-02-15 15:54:51,527 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1110, in infinity_polling
+    self.polling(non_stop=True, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 logger_level=logger_level, allowed_updates=allowed_updates, restart_on_change=False,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 *args, **kwargs)
+                 ^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1198, in polling
+    self.__threaded_polling(non_stop=non_stop, interval=interval, timeout=timeout, long_polling_timeout=long_polling_timeout,
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                            logger_level=logger_level, allowed_updates=allowed_updates)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1273, in __threaded_polling
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 154, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 10379, in _run_middlewares_and_handler
+    result = handler['function'](message)
+  File "C:\Users\User\Documents\F.R.I.D.A.Y\handlers.py", line 239, in handle_callbacks
+    cipher.generate_random("russian")
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+TypeError: Cipher.generate_random() takes 1 positional argument but 2 were given
+
+2026-02-15 15:55:03,591 - TeleBot - ERROR - Threaded polling exception: A request to the Telegram API was unsuccessful. Error code: 409. Description: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2026-02-15 15:55:03,621 - TeleBot - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 1234, in __threaded_polling
+    polling_thread.raise_exceptions()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 115, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\util.py", line 97, in run
+    task(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 688, in __retrieve_updates
+    updates = self.get_updates(offset=(self.last_update_id + 1),
+                               allowed_updates=allowed_updates,
+                               timeout=timeout, long_polling_timeout=long_polling_timeout)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\__init__.py", line 660, in get_updates
+    json_updates = apihelper.get_updates(
+        self.token, offset=offset, limit=limit, timeout=timeout, allowed_updates=allowed_updates,
+        long_polling_timeout=long_polling_timeout)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 339, in get_updates
+    return _make_request(token, method_url, params=payload)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 168, in _make_request
+    json_result = _check_result(method_name, result)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python314\Lib\site-packages\telebot\apihelper.py", line 197, in _check_result
+    raise ApiTelegramException(method_name, result, result_json)
+telebot.apihelper.ApiTelegramException: A request to the Telegram API was unsuccessful. Error code: 409. Description: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+
