@@ -1,5 +1,6 @@
 # config.py
-TOKEN = '7911112161:AAHi5rJhIh2ucH671Bdk87qL27L7sKntUjI'  # Вставьте свой токен
+import os
+TOKEN = os.environ.get('TOKEN', 'YOUR_BOT_TOKEN_HERE')  # Вставьте свой токен
 DB_NAME = 'ciphers.db'
 VERSION = '1.0.0'
 
@@ -30,3 +31,4 @@ EMOJIS = {
     'import': '📥',
     'qr': '📱'
 }
+
