@@ -1,4 +1,4 @@
-# keyboards.py - ПОЛНАЯ ВЕРСИЯ С QR-КОДОМ
+# keyboards.py - ПОЛНАЯ ВЕРСИЯ С КНОПКОЙ ПЕРЕИМЕНОВАНИЯ
 from telebot import types
 from config import EMOJIS
 
@@ -73,7 +73,7 @@ def get_ciphers_keyboard(ciphers: list, page: int = 0, items_per_page: int = 5):
     return keyboard
 
 def get_cipher_actions_keyboard(cipher_id: int, is_default: bool = False):
-    """Клавиатура действий с шифром"""
+    """Клавиатура действий с шифром (С КНОПКОЙ ПЕРЕИМЕНОВАНИЯ)"""
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     
     buttons = [
@@ -89,20 +89,27 @@ def get_cipher_actions_keyboard(cipher_id: int, is_default: bool = False):
     
     keyboard.add(*buttons)
     
+    # КНОПКА ПЕРЕИМЕНОВАНИЯ ДОБАВЛЕНА!
     buttons2 = [
+        types.InlineKeyboardButton(
+            f"{EMOJIS['edit']} Переименовать", 
+            callback_data=f"rename_cipher_{cipher_id}"
+        ),
         types.InlineKeyboardButton(
             f"🔄 Сменить шифр", 
             callback_data=f"change_cipher_{cipher_id}"
         )
     ]
     
-    if not is_default:
-        buttons2.append(types.InlineKeyboardButton(
-            f"{EMOJIS['star']} Сделать основным", 
-            callback_data=f"set_default_{cipher_id}"
-        ))
-    
     keyboard.add(*buttons2)
+    
+    if not is_default:
+        keyboard.add(
+            types.InlineKeyboardButton(
+                f"{EMOJIS['star']} Сделать основным", 
+                callback_data=f"set_default_{cipher_id}"
+            )
+        )
     
     keyboard.row(
         types.InlineKeyboardButton(
@@ -118,20 +125,20 @@ def get_cipher_actions_keyboard(cipher_id: int, is_default: bool = False):
     return keyboard
 
 def get_share_options_keyboard(cipher_id: int):
-    """Клавиатура с вариантами шаринга (С QR-КОДОМ!)"""
+    """Клавиатура с вариантами шаринга"""
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     
     buttons = [
         types.InlineKeyboardButton(
-            f"📝 Текстовая ссылка", 
+            f"📝 Ссылка", 
             callback_data=f"share_text_{cipher_id}"
         ),
         types.InlineKeyboardButton(
-            f"📱 QR-код",  # НОВАЯ КНОПКА!
+            f"📱 QR-код", 
             callback_data=f"share_qr_{cipher_id}"
         ),
         types.InlineKeyboardButton(
-            f"🔢 Код для импорта", 
+            f"🔢 Код", 
             callback_data=f"share_code_{cipher_id}"
         ),
         types.InlineKeyboardButton(
@@ -140,7 +147,6 @@ def get_share_options_keyboard(cipher_id: int):
         )
     ]
     
-    # Располагаем кнопки в 2 ряда по 2
     keyboard.add(*buttons[:2])
     keyboard.add(*buttons[2:])
     
@@ -164,7 +170,7 @@ def get_settings_keyboard():
     
     buttons = [
         types.InlineKeyboardButton(
-            f"{EMOJIS['info']} Моя статистика", 
+            f"{EMOJIS['info']} Статистика", 
             callback_data="show_stats"
         ),
         types.InlineKeyboardButton(
