@@ -1,4 +1,4 @@
-# handlers.py - ПОЛНАЯ ВЕРСИЯ С АЗБУКОЙ МОРЗЕ И УЛУЧШЕННЫМ РАСПОЗНАВАНИЕМ
+# handlers.py - ПОЛНАЯ ВЕРСИЯ С АЗБУКОЙ МОРЗЕ (ЧАСТЬ 1/5)
 import telebot
 from telebot import types
 import time
@@ -9,7 +9,7 @@ from cipher import Cipher
 from database import Database
 from keyboards import *
 from utils import *
-from basic_ciphers import BasicCiphers, KeyboardCipher, EmojiHelper
+from basic_ciphers import BasicCiphers, KeyboardCipher
 from morse_cipher import MorseCipher
 
 # Добавляем недостающие эмодзи
@@ -188,7 +188,6 @@ def show_ciphers(message):
         parse_mode='Markdown',
         reply_markup=get_ciphers_keyboard(ciphers)
     )
-
 @bot.message_handler(func=lambda message: message.text == "📋 Базовые шифры")
 def basic_ciphers_menu(message):
     """Меню базовых шифров"""
@@ -331,7 +330,6 @@ def show_help(message):
         parse_mode='Markdown',
         reply_markup=get_back_keyboard()
     )
-
 # ============================================
 # ОБРАБОТКА НАЖАТИЙ НА КНОПКИ
 # ============================================
@@ -444,8 +442,7 @@ def handle_callbacks(call):
             parse_mode='Markdown'
         )
         return
-    
-    # ===== ПОДЕЛИТЬСЯ ШИФРОМ =====
+        # ===== ПОДЕЛИТЬСЯ ШИФРОМ =====
     if data.startswith("share_cipher_"):
         cipher_id = int(data.split("_")[2])
         cipher_data = db.get_cipher(cipher_id)
@@ -635,4 +632,741 @@ def handle_callbacks(call):
             keyboard = types.InlineKeyboardMarkup()
             keyboard.add(types.InlineKeyboardButton(
                 f"{EMOJIS['back']} Назад", 
-                callback_data=f
+                callback_data=f"share_cipher_{cipher_id}"
+            ))
+            
+            bot.send_message(
+                user_id,
+                "Вернуться к выбору:",
+                reply_markup=keyboard
+            )
+            
+        except Exception as e:
+            bot.answer_callback_query(
+                call.id, 
+                f"{EMOJIS['error']} Ошибка"
+            )
+        return
+    
+    # ===== ИМПОРТ ШИФРА =====
+    if data == "import_cipher":
+        temp_data[f"import_waiting_{user_id}"] = True
+        
+        bot.edit_message_text(
+            f"{EMOJIS['import']} *ИМПОРТ ШИФРА*\n\n"
+            f"Отправьте код шифра, который вам дали:",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # ===== ПОДТВЕРЖДЕНИЕ ИМПОРТА ПО ССЫЛКЕ =====
+    if data.startswith("import_cipher_"):
+        cipher_id = int(data.split("_")[2])
+        
+        if f"import_{user_id}" in temp_data:
+            cipher_data = temp_data[f"import_{user_id}"]['cipher_data']
+            
+            cipher = Cipher.from_dict(cipher_data)
+            cipher.name = f"{cipher.name} (копия)"
+            
+            new_id = db.save_cipher(user_id, cipher)
+            
+            bot.edit_message_text(
+                f"{EMOJIS['success']} *Шифр успешно добавлен!*\n\n"
+                f"{cipher.get_preview()}",
+                user_id,
+                call.message.message_id,
+                parse_mode='Markdown'
+            )
+            
+            del temp_data[f"import_{user_id}"]
+        return
+    
+    # ===== ОТМЕНА ИМПОРТА =====
+    if data == "cancel_import":
+        if f"import_{user_id}" in temp_data:
+            del temp_data[f"import_{user_id}"]
+        
+        bot.edit_message_text(
+            f"{EMOJIS['info']} Импорт отменен",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # ===== ПЕРЕИМЕНОВАНИЕ ШИФРА =====
+    if data.startswith("rename_cipher_"):
+        cipher_id = int(data.split("_")[2])
+        
+        temp_data[f"rename_{user_id}"] = {
+            'cipher_id': cipher_id
+        }
+        
+        bot.edit_message_text(
+            f"{EMOJIS['edit']} *Переименование шифра*\n\n"
+            f"Введите новое название для шифра:",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+        # ===== СМЕНА ШИФРА =====
+    if data.startswith("change_cipher_"):
+        cipher_id = int(data.split("_")[2])
+        cipher_data = db.get_cipher(cipher_id)
+        cipher = Cipher.from_dict(cipher_data)
+        
+        temp_data[f"changing_{user_id}"] = {
+            'cipher_id': cipher_id,
+            'current_letter_index': 0,
+            'new_map': {},
+            'cipher': cipher
+        }
+        
+        russian_letters = list("абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
+        first_letter = russian_letters[0]
+        current_symbol = cipher.cipher_map.get(first_letter, "?")
+        
+        change_text = f"""
+{EMOJIS['edit']} *Смена шифра*
+
+*Буква 1/33:* **{first_letter}**
+Текущий символ: {current_symbol}
+
+Отправьте новый символ для этой буквы
+        """
+        
+        bot.edit_message_text(
+            change_text,
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # ===== УСТАНОВКА ОСНОВНОГО =====
+    if data.startswith("set_default_"):
+        cipher_id = int(data.split("_")[2])
+        
+        if db.set_default_cipher(user_id, cipher_id):
+            bot.answer_callback_query(
+                call.id,
+                f"{EMOJIS['success']} Шифр установлен как основной!"
+            )
+            
+            ciphers = db.get_user_ciphers(user_id)
+            cipher_data = db.get_cipher(cipher_id)
+            cipher = Cipher.from_dict(cipher_data)
+            
+            bot.edit_message_text(
+                f"{EMOJIS['key']} *{cipher.name} (основной)*\n\n"
+                f"{cipher.get_preview(15)}",
+                user_id,
+                call.message.message_id,
+                parse_mode='Markdown',
+                reply_markup=get_cipher_actions_keyboard(cipher_id, True)
+            )
+        else:
+            bot.answer_callback_query(call.id, f"{EMOJIS['error']} Ошибка!")
+        return
+    
+    # ===== УДАЛЕНИЕ =====
+    if data.startswith("delete_cipher_"):
+        cipher_id = int(data.split("_")[2])
+        
+        bot.edit_message_text(
+            f"{EMOJIS['warning']} *Подтверждение*\n\n"
+            f"Вы уверены, что хотите удалить этот шифр?",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown',
+            reply_markup=get_confirm_keyboard("delete", cipher_id)
+        )
+        return
+    
+    # ===== ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ =====
+    if data.startswith("confirm_delete_"):
+        cipher_id = int(data.split("_")[2])
+        
+        if db.delete_cipher(user_id, cipher_id):
+            bot.answer_callback_query(call.id, f"{EMOJIS['success']} Шифр удален!")
+            
+            ciphers = db.get_user_ciphers(user_id)
+            bot.edit_message_text(
+                f"{EMOJIS['key']} *Ваши шифры:*",
+                user_id,
+                call.message.message_id,
+                parse_mode='Markdown',
+                reply_markup=get_ciphers_keyboard(ciphers)
+            )
+        else:
+            bot.answer_callback_query(
+                call.id, 
+                f"{EMOJIS['error']} Нельзя удалить основной шифр!"
+            )
+        return
+    
+    # ===== ОТМЕНА =====
+    if data == "cancel":
+        bot.edit_message_text(
+            f"{EMOJIS['info']} Действие отменено",
+            user_id,
+            call.message.message_id,
+            reply_markup=None
+        )
+        return
+    
+    # ===== ВЫБОР ВАРИАНТА РАСШИФРОВКИ =====
+    if data.startswith("choose_decrypt_"):
+        parts = data.split("_")
+        cipher_id = int(parts[2])
+        option_num = int(parts[3])
+        
+        if f"decrypt_results_{user_id}" in temp_data:
+            results = temp_data[f"decrypt_results_{user_id}"]['results']
+            encrypted = temp_data[f"decrypt_results_{user_id}"]['encrypted']
+            
+            selected = next((r for r in results if r['cipher_id'] == cipher_id), None)
+            
+            if selected:
+                db.add_to_history(user_id, selected['cipher_id'], selected['decrypted'], encrypted, 'decrypt')
+                
+                result_text = f"{EMOJIS['decipher']} *Расшифровано*\n\n"
+                result_text += f"🔑 Шифр: *{selected['cipher_name']}*\n"
+                result_text += f"📊 Точность: {selected['score']:.1f}%\n\n"
+                result_text += f"📝 Результат:\n`{selected['decrypted']}`\n\n"
+                
+                if selected['error_list']:
+                    result_text += f"⚠️ Неопознано: {', '.join(selected['error_list'][:10])}"
+                
+                bot.edit_message_text(
+                    result_text,
+                    user_id,
+                    call.message.message_id,
+                    parse_mode='Markdown'
+                )
+                
+                keyboard = types.InlineKeyboardMarkup()
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['decipher']} Ещё", 
+                    callback_data="decrypt_again"
+                ))
+                keyboard.add(types.InlineKeyboardButton(
+                    f"{EMOJIS['back']} Меню", 
+                    callback_data="back_to_main"
+                ))
+                
+                bot.send_message(
+                    user_id,
+                    "Что дальше?",
+                    reply_markup=keyboard
+                )
+                
+                del temp_data[f"decrypt_results_{user_id}"]
+                if f"decrypt_{user_id}" in temp_data:
+                    del temp_data[f"decrypt_{user_id}"]
+        
+        return
+    
+    # ===== ОТМЕНА РАСШИФРОВКИ =====
+    if data == "cancel_decrypt":
+        if f"decrypt_results_{user_id}" in temp_data:
+            del temp_data[f"decrypt_results_{user_id}"]
+        if f"decrypt_{user_id}" in temp_data:
+            del temp_data[f"decrypt_{user_id}"]
+        
+        bot.edit_message_text(
+            f"{EMOJIS['info']} Отменено",
+            user_id,
+            call.message.message_id,
+            reply_markup=None
+        )
+        return
+    
+    # ===== ПОВТОРНАЯ РАСШИФРОВКА =====
+    if data == "decrypt_again":
+        bot.delete_message(user_id, call.message.message_id)
+        
+        fake_msg = type('obj', (object,), {
+            'from_user': type('obj', (object,), {'id': user_id}),
+            'chat': type('obj', (object,), {'id': user_id}),
+            'text': f"{EMOJIS['decipher']} Расшифровать"
+        })
+        decrypt_text(fake_msg)
+        return
+    
+    # ===== СТАТИСТИКА =====
+    if data == "show_stats":
+        ciphers = db.get_user_ciphers(user_id)
+        history = db.get_history(user_id, limit=1000)
+        
+        total_encrypt = sum(1 for h in history if h['operation'] == 'encrypt')
+        total_decrypt = sum(1 for h in history if h['operation'] == 'decrypt')
+        
+        stats_text = f"""
+{EMOJIS['info']} *Статистика*
+
+📊 Шифров: {len(ciphers)}
+📝 Операций: {len(history)}
+  • Зашифровано: {total_encrypt}
+  • Расшифровано: {total_decrypt}
+        """
+        
+        bot.edit_message_text(
+            stats_text,
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown',
+            reply_markup=get_back_keyboard()
+        )
+        return
+    
+    # ===== БАЗОВЫЕ ШИФРЫ =====
+    if data == "basic_caesar":
+        temp_data[f"basic_{user_id}"] = {
+            'type': 'caesar',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"🔢 *Шифр Цезаря*\n\n"
+            f"Отправьте текст для шифрования (сдвиг 3):",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    if data == "basic_atbash":
+        temp_data[f"basic_{user_id}"] = {
+            'type': 'atbash',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"🪞 *Шифр Атбаш*\n\n"
+            f"Отправьте текст для шифрования (зеркальный):",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    if data == "basic_vigenere":
+        temp_data[f"basic_{user_id}"] = {
+            'type': 'vigenere',
+            'step': 'waiting_key'
+        }
+        bot.edit_message_text(
+            f"🔑 *Шифр Виженера*\n\n"
+            f"Введите ключевое слово:",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # ===== АЗБУКА МОРЗЕ =====
+    if data == "morse_encode":
+        temp_data[f"morse_{user_id}"] = {
+            'action': 'encode',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"⚡ *Азбука Морзе: Текст → Морзе*\n\n"
+            f"Отправьте текст для преобразования в сигналы Морзе.\n\n"
+            f"Поддерживаются:\n"
+            f"• Русские и английские буквы\n"
+            f"• Цифры 0-9\n"
+            f"• Знаки препинания: . , ? ! - / ( ) @\n"
+            f"• Эмодзи (будут проигнорированы)",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    if data == "morse_decode":
+        temp_data[f"morse_{user_id}"] = {
+            'action': 'decode',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"⚡ *Азбука Морзе: Морзе → Текст*\n\n"
+            f"Отправьте сигналы Морзе для расшифровки.\n\n"
+            f"Правила записи:\n"
+            f"• Точка: `.` или `·`\n"
+            f"• Тире: `-` или `_`\n"
+            f"• Пробел между буквами: один пробел\n"
+            f"• Разделитель слов: `/` или `|`\n\n"
+            f"Пример: `.... . .-.. .-.. --- / .-- --- .-. .-.. -..`",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+
+# ============================================
+# ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ
+# ============================================
+@bot.message_handler(func=lambda message: True)
+def handle_messages(message):
+    user_id = message.from_user.id
+    text = message.text
+    
+    # Игнорируем команды и кнопки
+    if text.startswith('/') or text in [f"{EMOJIS['cipher']} Зашифровать", 
+                                         f"{EMOJIS['decipher']} Расшифровать",
+                                         f"{EMOJIS['key']} Мои шифры",
+                                         f"📋 Базовые шифры",
+                                         f"⌨️ Раскладка",
+                                         f"⚡ Морзе",
+                                         f"{EMOJIS['share']} Поделиться",
+                                         f"{EMOJIS['settings']} Настройки",
+                                         f"{EMOJIS['help']} Помощь"]:
+        return
+    
+    # ===== АЗБУКА МОРЗЕ =====
+    if f"morse_{user_id}" in temp_data:
+        morse_data = temp_data[f"morse_{user_id}"]
+        
+        if morse_data['action'] == 'encode':
+            # Текст → Морзе
+            result = MorseCipher.text_to_morse(text)
+            bot.reply_to(
+                message,
+                f"⚡ *Текст в Морзе*\n\n"
+                f"Исходный текст:\n`{text}`\n\n"
+                f"Результат:\n`{result}`",
+                parse_mode='Markdown'
+            )
+            del temp_data[f"morse_{user_id}"]
+            return
+        
+        elif morse_data['action'] == 'decode':
+            # Морзе → Текст
+            result, unknown = MorseCipher.morse_to_text(text)
+            
+            if unknown:
+                bot.reply_to(
+                    message,
+                    f"⚡ *Морзе в текст*\n\n"
+                    f"Исходный код:\n`{text}`\n\n"
+                    f"Результат:\n`{result}`\n\n"
+                    f"⚠️ Неопознанные символы: {unknown}",
+                    parse_mode='Markdown'
+                )
+            else:
+                bot.reply_to(
+                    message,
+                    f"⚡ *Морзе в текст*\n\n"
+                    f"Исходный код:\n`{text}`\n\n"
+                    f"Результат:\n`{result}`",
+                    parse_mode='Markdown'
+                )
+            del temp_data[f"morse_{user_id}"]
+            return
+    
+    # ===== РАСКЛАДКА КЛАВИАТУРЫ =====
+    if f"keyboard_{user_id}" in temp_data:
+        # Проверяем, русский или английский
+        ru_count = 0
+        en_count = 0
+        for char in text:
+            if 'а' <= char.lower() <= 'я' or char == 'ё':
+                ru_count += 1
+            elif 'a' <= char.lower() <= 'z':
+                en_count += 1
+        
+        if ru_count > en_count:
+            # Больше русских букв -> конвертируем в английскую раскладку
+            result = KeyboardCipher.ru_to_en(text)
+            direction = "🇷🇺 → 🇬🇧"
+        else:
+            # Больше английских -> конвертируем в русскую
+            result = KeyboardCipher.en_to_ru(text)
+            direction = "🇬🇧 → 🇷🇺"
+        
+        bot.reply_to(
+            message,
+            f"⌨️ *Результат смены раскладки*\n\n"
+            f"{direction}:\n"
+            f"`{result}`",
+            parse_mode='Markdown'
+        )
+        del temp_data[f"keyboard_{user_id}"]
+        return
+    
+    # ===== БАЗОВЫЕ ШИФРЫ =====
+    if f"basic_{user_id}" in temp_data:
+        basic_data = temp_data[f"basic_{user_id}"]
+        
+        if basic_data['type'] == 'caesar':
+            result = BasicCiphers.caesar_encrypt(text)
+            bot.reply_to(
+                message,
+                f"🔢 *Шифр Цезаря (сдвиг 3)*\n\n"
+                f"Исходный текст:\n`{text}`\n\n"
+                f"Зашифровано:\n`{result}`",
+                parse_mode='Markdown'
+            )
+            del temp_data[f"basic_{user_id}"]
+            return
+        
+        elif basic_data['type'] == 'atbash':
+            result = BasicCiphers.atbash_encrypt(text)
+            bot.reply_to(
+                message,
+                f"🪞 *Шифр Атбаш (зеркальный)*\n\n"
+                f"Исходный текст:\n`{text}`\n\n"
+                f"Зашифровано:\n`{result}`",
+                parse_mode='Markdown'
+            )
+            del temp_data[f"basic_{user_id}"]
+            return
+        
+        elif basic_data['type'] == 'vigenere':
+            if basic_data.get('step') == 'waiting_key':
+                # Сохраняем ключ и ждем текст
+                basic_data['key'] = text
+                basic_data['step'] = 'waiting_text'
+                bot.reply_to(
+                    message,
+                    f"🔑 Ключ *{text}* сохранен.\n\n"
+                    f"Теперь отправьте текст для шифрования:",
+                    parse_mode='Markdown'
+                )
+                return
+            elif basic_data.get('step') == 'waiting_text':
+                # Есть ключ и текст - шифруем
+                key = basic_data.get('key', 'ключ')
+                result = BasicCiphers.vigenere_encrypt(text, key)
+                bot.reply_to(
+                    message,
+                    f"🔑 *Шифр Виженера*\n\n"
+                    f"Ключ: `{key}`\n"
+                    f"Исходный текст:\n`{text}`\n\n"
+                    f"Зашифровано:\n`{result}`",
+                    parse_mode='Markdown'
+                )
+                del temp_data[f"basic_{user_id}"]
+                return
+    
+    # ===== ИМПОРТ ШИФРА =====
+    if f"import_waiting_{user_id}" in temp_data:
+        try:
+            cipher = Cipher.import_from_string(text)
+            
+            if cipher:
+                cipher.name = f"Импортированный: {cipher.name}"
+                cipher_id = db.save_cipher(user_id, cipher)
+                
+                bot.reply_to(
+                    message,
+                    f"{EMOJIS['success']} *Шифр успешно импортирован!*\n\n"
+                    f"{cipher.get_preview()}",
+                    parse_mode='Markdown'
+                )
+                
+                del temp_data[f"import_waiting_{user_id}"]
+            else:
+                bot.reply_to(
+                    message,
+                    f"{EMOJIS['error']} Неверный формат кода шифра"
+                )
+        except:
+            bot.reply_to(
+                message,
+                f"{EMOJIS['error']} Ошибка при импорте"
+            )
+        return
+    
+    # ===== ПЕРЕИМЕНОВАНИЕ =====
+    if f"rename_{user_id}" in temp_data:
+        cipher_id = temp_data[f"rename_{user_id}"]['cipher_id']
+        
+        cipher_data = db.get_cipher(cipher_id)
+        if not cipher_data:
+            bot.reply_to(message, f"{EMOJIS['error']} Шифр не найден")
+            del temp_data[f"rename_{user_id}"]
+            return
+        
+        cipher = Cipher.from_dict(cipher_data)
+        
+        if cipher.rename(text):
+            db.save_cipher(user_id, cipher)
+            bot.reply_to(
+                message, 
+                f"{EMOJIS['success']} Шифр переименован в *{cipher.name}*", 
+                parse_mode='Markdown'
+            )
+        else:
+            bot.reply_to(message, f"{EMOJIS['error']} Ошибка переименования")
+        
+        del temp_data[f"rename_{user_id}"]
+        return
+    
+    # ===== СМЕНА ШИФРА =====
+    if f"changing_{user_id}" in temp_data:
+        change_data = temp_data[f"changing_{user_id}"]
+        current_index = change_data['current_letter_index']
+        cipher = change_data['cipher']
+        new_map = change_data['new_map']
+        
+        russian_letters = list("абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
+        
+        if not text:
+            bot.reply_to(message, "Отправьте символ для этой буквы!")
+            return
+        
+        current_letter = russian_letters[current_index]
+        new_map[current_letter] = text[0]
+        
+        next_index = current_index + 1
+        
+        if next_index < len(russian_letters):
+            next_letter = russian_letters[next_index]
+            current_symbol = cipher.cipher_map.get(next_letter, "?")
+            
+            change_data['current_letter_index'] = next_index
+            change_data['new_map'] = new_map
+            
+            change_text = f"""
+{EMOJIS['edit']} *Смена шифра*
+
+✅ Буква **{current_letter}** → {text[0]}
+
+*Буква {next_index+1}/33:* **{next_letter}**
+Текущий символ: {current_symbol}
+
+Отправьте новый символ
+            """
+            
+            bot.reply_to(message, change_text, parse_mode='Markdown')
+            
+        else:
+            cipher.cipher_map.update(new_map)
+            cipher.reverse_map = {v: k for k, v in cipher.cipher_map.items()}
+            
+            new_cipher_id = db.save_cipher(user_id, cipher)
+            db.set_default_cipher(user_id, new_cipher_id)
+            
+            del temp_data[f"changing_{user_id}"]
+            
+            finish_text = f"""
+{EMOJIS['success']} *Шифр успешно изменен!*
+
+{cipher.get_preview(10)}
+            """
+            
+            bot.reply_to(message, finish_text, parse_mode='Markdown')
+            bot.send_message(user_id, "Выберите действие:", reply_markup=get_main_keyboard())
+        
+        return
+    
+    # ===== ШИФРОВАНИЕ =====
+    if f"encrypt_{user_id}" in temp_data:
+        state = temp_data[f"encrypt_{user_id}"]
+        
+        if state['step'] == 'waiting_text':
+            is_valid, error_msg = validate_text(text)
+            if not is_valid:
+                bot.reply_to(message, f"{EMOJIS['error']} {error_msg}")
+                return
+            
+            cipher_data = db.get_cipher(state['cipher_id'])
+            cipher = Cipher.from_dict(cipher_data)
+            
+            encrypted, errors = cipher.encrypt(text)
+            db.add_to_history(user_id, state['cipher_id'], text, encrypted, 'encrypt')
+            
+            result_text = f"{EMOJIS['cipher']} *Зашифровано:*\n\n`{encrypted}`"
+            
+            if errors:
+                result_text += f"\n\n⚠️ Не найдены: {', '.join(set(errors))}"
+            
+            bot.send_message(user_id, result_text, parse_mode='Markdown')
+            del temp_data[f"encrypt_{user_id}"]
+        
+        return
+        # ===== АВТОРАСШИФРОВКА =====
+    if f"decrypt_{user_id}" in temp_data:
+        state = temp_data[f"decrypt_{user_id}"]
+        
+        if state['step'] == 'waiting_text':
+            encrypted = text
+            ciphers = db.get_user_ciphers(user_id)
+            
+            if not ciphers:
+                bot.reply_to(message, f"{EMOJIS['error']} У вас нет шифров!")
+                del temp_data[f"decrypt_{user_id}"]
+                return
+            
+            searching = bot.reply_to(message, f"{EMOJIS['search']} 🔍 Поиск...")
+            
+            results = []
+            for cipher_info in ciphers:
+                cipher = Cipher.from_dict(cipher_info['data'])
+                decrypted, errors = cipher.decrypt(encrypted)
+                
+                total_chars = len(encrypted)
+                error_chars = len(errors)
+                score = (total_chars - error_chars) / total_chars * 100 if total_chars > 0 else 0
+                
+                results.append({
+                    'cipher': cipher,
+                    'decrypted': decrypted,
+                    'cipher_id': cipher_info['id'],
+                    'cipher_name': cipher_info['name'],
+                    'score': score,
+                    'errors': errors,
+                    'error_list': errors
+                })
+            
+            bot.delete_message(user_id, searching.message_id)
+            
+            if not results:
+                bot.reply_to(message, f"{EMOJIS['error']} Не удалось расшифровать!")
+                del temp_data[f"decrypt_{user_id}"]
+                return
+            
+            results.sort(key=lambda x: x['score'], reverse=True)
+            best = results[0]
+            
+            if best['score'] < 30:
+                response = f"{EMOJIS['warning']} *Низкая точность*\n\n"
+                response += f"Шифр: *{best['cipher_name']}*\n"
+                response += f"Точность: {best['score']:.1f}%\n\n"
+                response += f"Результат:\n`{best['decrypted']}`"
+                
+                bot.reply_to(message, response, parse_mode='Markdown')
+                del temp_data[f"decrypt_{user_id}"]
+                return
+            
+            response = f"{EMOJIS['decipher']} *Результаты*\n\n"
+            
+            for i, res in enumerate(results[:3], 1):
+                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+                response += f"{medal} *{res['cipher_name']}* - {res['score']:.1f}%\n"
+                response += f"`{res['decrypted'][:50]}`\n\n"
+            
+            keyboard = types.InlineKeyboardMarkup(row_width=3)
+            buttons = []
+            for i, res in enumerate(results[:3], 1):
+                buttons.append(types.InlineKeyboardButton(f"{i}", callback_data=f"choose_decrypt_{res['cipher_id']}_{i}"))
+            keyboard.add(*buttons)
+            keyboard.add(types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_decrypt"))
+            
+            temp_data[f"decrypt_results_{user_id}"] = {
+                'results': results[:3],
+                'encrypted': encrypted
+            }
+            
+            bot.send_message(user_id, response, parse_mode='Markdown', reply_markup=keyboard)
+        
+        return
+    
+    # ===== ЕСЛИ НИЧЕГО =====
+    else:
+        bot.reply_to(message, f"{EMOJIS['info']} Используйте меню или /start")
