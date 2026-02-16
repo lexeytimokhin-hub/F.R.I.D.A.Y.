@@ -1,4 +1,4 @@
-# cipher.py - ПОЛНАЯ ВЕРСИЯ С ЭКСПОРТОМ/ИМПОРТОМ
+# cipher.py - ПОЛНАЯ ВЕРСИЯ С ПЕРЕИМЕНОВАНИЕМ
 import random
 import json
 import base64
@@ -60,6 +60,22 @@ class Cipher:
         self.reverse_map = {}
         self.created_at = None
         self.updated_at = None
+    
+    # ============================================
+    # НОВАЯ ФУНКЦИЯ ПЕРЕИМЕНОВАНИЯ
+    # ============================================
+    def rename(self, new_name: str) -> bool:
+        """
+        Переименовывает шифр
+        """
+        try:
+            if new_name and len(new_name.strip()) > 0:
+                self.name = new_name.strip()
+                return True
+            return False
+        except Exception as e:
+            print(f"Rename error: {e}")
+            return False
     
     # ============================================
     # ГЕНЕРАЦИЯ ШИФРА
@@ -138,33 +154,46 @@ class Cipher:
         return ''.join(result), list(set(errors))
     
     # ============================================
-    # ЭКСПОРТ ШИФРА (НОВАЯ ФУНКЦИЯ!)
+    # ЭКСПОРТ ШИФРА В СТРОКУ
     # ============================================
     def export_to_string(self) -> str:
-        """Экспортирует шифр в строку для передачи"""
-        data = {
-            'name': self.name,
-            'cipher_map': self.cipher_map,
-            'version': '1.0'
-        }
-        
-        json_str = json.dumps(data, ensure_ascii=False)
-        encoded = base64.b64encode(json_str.encode()).decode()
-        
-        return f"CIPHER:{encoded}"
+        """
+        Экспортирует шифр в строку для передачи
+        """
+        try:
+            data = {
+                'name': self.name,
+                'cipher_map': self.cipher_map,
+                'version': '1.0'
+            }
+            
+            json_str = json.dumps(data, ensure_ascii=False)
+            encoded = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+            
+            return f"CIPHER:{encoded}"
+        except Exception as e:
+            print(f"Export error: {e}")
+            return "CIPHER:ОШИБКА_ЭКСПОРТА"
     
     # ============================================
-    # ИМПОРТ ШИФРА (НОВАЯ ФУНКЦИЯ!)
+    # ИМПОРТ ШИФРА ИЗ СТРОКИ
     # ============================================
     @classmethod
-    def import_from_string(cls, text: str) -> 'Cipher':
-        """Импортирует шифр из строки"""
+    def import_from_string(cls, text: str):
+        """
+        Импортирует шифр из строки
+        """
         try:
+            if not text or not isinstance(text, str):
+                return None
+            
+            text = text.strip()
+            
             if not text.startswith('CIPHER:'):
                 return None
             
-            encoded = text.replace('CIPHER:', '')
-            json_str = base64.b64decode(encoded).decode()
+            encoded = text.replace('CIPHER:', '').strip()
+            json_str = base64.b64decode(encoded.encode('utf-8')).decode('utf-8')
             data = json.loads(json_str)
             
             cipher = cls(data.get('name', 'Импортированный шифр'))
@@ -172,7 +201,8 @@ class Cipher:
             cipher.reverse_map = {v: k for k, v in cipher.cipher_map.items()}
             
             return cipher
-        except:
+        except Exception as e:
+            print(f"Import error: {e}")
             return None
     
     # ============================================
