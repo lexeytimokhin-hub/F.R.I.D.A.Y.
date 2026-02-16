@@ -1,4 +1,4 @@
-# keyboards.py - ПОЛНАЯ ВЕРСИЯ С КНОПКОЙ ПЕРЕИМЕНОВАНИЯ
+# keyboards.py - ПОЛНАЯ ВЕРСИЯ С КНОПКОЙ МОРЗЕ
 from telebot import types
 from config import EMOJIS
 
@@ -10,6 +10,9 @@ def get_main_keyboard():
         types.KeyboardButton(f"{EMOJIS['cipher']} Зашифровать"),
         types.KeyboardButton(f"{EMOJIS['decipher']} Расшифровать"),
         types.KeyboardButton(f"{EMOJIS['key']} Мои шифры"),
+        types.KeyboardButton(f"📋 Базовые шифры"),
+        types.KeyboardButton(f"⌨️ Раскладка"),
+        types.KeyboardButton(f"⚡ Морзе"),  # НОВАЯ КНОПКА!
         types.KeyboardButton(f"{EMOJIS['share']} Поделиться"),
         types.KeyboardButton(f"{EMOJIS['settings']} Настройки"),
         types.KeyboardButton(f"{EMOJIS['help']} Помощь")
@@ -73,7 +76,7 @@ def get_ciphers_keyboard(ciphers: list, page: int = 0, items_per_page: int = 5):
     return keyboard
 
 def get_cipher_actions_keyboard(cipher_id: int, is_default: bool = False):
-    """Клавиатура действий с шифром (С КНОПКОЙ ПЕРЕИМЕНОВАНИЯ)"""
+    """Клавиатура действий с шифром"""
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     
     buttons = [
@@ -89,7 +92,6 @@ def get_cipher_actions_keyboard(cipher_id: int, is_default: bool = False):
     
     keyboard.add(*buttons)
     
-    # КНОПКА ПЕРЕИМЕНОВАНИЯ ДОБАВЛЕНА!
     buttons2 = [
         types.InlineKeyboardButton(
             f"{EMOJIS['edit']} Переименовать", 
