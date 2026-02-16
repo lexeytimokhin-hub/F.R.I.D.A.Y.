@@ -648,7 +648,7 @@ def handle_callbacks(call):
             'cipher': cipher
         }
         
-                russian_letters = list("абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
+        russian_letters = list("абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
         first_letter = russian_letters[0]
         current_symbol = cipher.cipher_map.get(first_letter, "?")
         
@@ -1084,3 +1084,4 @@ def handle_messages(message):
     # ===== ЕСЛИ НИЧЕГО =====
     else:
         bot.reply_to(message, f"{EMOJIS['info']} Используйте меню или /start")
+
