@@ -29,11 +29,11 @@ class UIMessages:
 
 {EMOJIS['crown']} *МОИ ВОЗМОЖНОСТИ:*
 {EMOJIS['cipher']} • Свои шифры из эмодзи
-{EMOJIS['caesar']} • Шифр Цезаря
-{EMOJIS['atbash']} • Шифр Атбаш  
-{EMOJIS['vigenere']} • Шифр Виженера
-{EMOJIS['morse']} • Азбука Морзе
-{EMOJIS['keyboard']} • Смена раскладки
+🔢 • Шифр Цезаря
+🪞 • Шифр Атбаш  
+🔑 • Шифр Виженера
+⚡ • Азбука Морзе
+⌨️ • Смена раскладки
 
 {EMOJIS['magic']} *УМНАЯ РАСШИФРОВКА:*
 Просто отправь мне любое сообщение,
@@ -54,13 +54,13 @@ class UIMessages:
 и я автоматически определю метод расшифровки:
 
 {EMOJIS['cipher']} • Твои личные шифры
-{EMOJIS['caesar']} • Шифр Цезаря
-{EMOJIS['atbash']} • Шифр Атбаш
-{EMOJIS['vigenere']} • Шифр Виженера
-{EMOJIS['morse']} • Азбука Морзе
-{EMOJIS['keyboard']} • Раскладка клавиатуры
+🔢 • Шифр Цезаря
+🪞 • Шифр Атбаш
+🔑 • Шифр Виженера
+⚡ • Азбука Морзе
+⌨️ • Раскладка клавиатуры
 
-{EMOJIS['zap']} *Поддерживаются:*
+⚡ *Поддерживаются:*
 • Все буквы (рус/англ)
 • Все цифры (включая 6️⃣)
 • Все знаки препинания
@@ -91,10 +91,13 @@ class UIMessages:
         for i, res in enumerate(results[:5] if not show_all else results, 1):
             medal = '🥇' if i == 1 else '🥈' if i == 2 else '🥉' if i == 3 else '📌'
             
+            # Определяем иконку по типу
+            icon = res.get('icon', '📌')
+            
             # Обрезаем длинный результат
             short_res = res['result'][:100] + '...' if len(res['result']) > 100 else res['result']
             
-            output += f"{medal} *{res['icon']} {res['name']}*\n"
+            output += f"{medal} *{icon} {res['name']}*\n"
             output += f"   📊 *Точность:* {res['score']:.1f}%\n"
             output += f"   📝 `{short_res}`\n\n"
             
@@ -114,10 +117,10 @@ class UIMessages:
 
 Я проверил все возможные методы:
 {EMOJIS['cipher']} Личные шифры
-{EMOJIS['morse']} Азбука Морзе
-{EMOJIS['keyboard']} Раскладка клавиатуры
-{EMOJIS['caesar']} Цезарь (33 варианта)
-{EMOJIS['atbash']} Атбаш
+⚡ Азбука Морзе
+⌨️ Раскладка клавиатуры
+🔢 Цезарь (33 варианта)
+🪞 Атбаш
 
 *Возможные причины:*
 • Текст слишком короткий
@@ -162,14 +165,14 @@ class UIMessages:
 
 *🔢 БАЗОВЫЕ ШИФРЫ:*
 
-{EMOJIS['caesar']} *Цезарь* - сдвиг букв на 3 позиции
-{EMOJIS['atbash']} *Атбаш* - зеркальный шифр (А=Я, Б=Ю)
-{EMOJIS['vigenere']} *Виженер* - шифр с ключевым словом
+🔢 *Цезарь* - сдвиг букв на 3 позиции
+🪞 *Атбаш* - зеркальный шифр (А=Я, Б=Ю)
+🔑 *Виженер* - шифр с ключевым словом
 
 *⚡ СПЕЦИАЛЬНЫЕ:*
 
-{EMOJIS['morse']} *Морзе* - азбука Морзе
-{EMOJIS['keyboard']} *Раскладка* - смена RU/EN клавиатуры
+⚡ *Морзе* - азбука Морзе
+⌨️ *Раскладка* - смена RU/EN клавиатуры
 
 {UIMessages.SEPARATORS['stars']}
 *📤 ПОДЕЛИТЬСЯ:*
@@ -222,9 +225,9 @@ class UIMessages:
 {EMOJIS['key']} *Шифров создано:* {ciphers_count}
 {EMOJIS['cipher']} *Операций:* {history_count}
 
-{EMOJIS['time']} *Последняя активность:*
+⏰ *Последняя активность:*
 {last_date or 'нет данных'}
 
 {UIMessages.SEPARATORS['line']}
-Продолжай в том же духе! {EMOJIS['fire']}
+Продолжай в том же духе! 🔥
 """
