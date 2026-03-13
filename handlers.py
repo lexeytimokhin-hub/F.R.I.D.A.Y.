@@ -1,4 +1,4 @@
-# handlers.py - ПОЛНАЯ ВЕРСИЯ С РАСШИФРОВКОЙ БАЗОВЫХ ШИФРОВ
+# handlers.py - ПОЛНАЯ ВЕРСИЯ С УМНОЙ РАСШИФРОВКОЙ И КРАСИВЫМ ИНТЕРФЕЙСОМ
 import telebot
 from telebot import types
 import time
@@ -9,8 +9,11 @@ from cipher import Cipher
 from database import Database
 from keyboards import *
 from utils import *
-from basic_ciphers import BasicCiphers, KeyboardCipher, EmojiHelper
+from basic_ciphers import BasicCiphers, KeyboardCipher
 from morse_cipher import MorseCipher
+from emoji_helper import EmojiHelper
+from smart_decrypt import SmartDecrypt
+from ui_messages import UIMessages
 
 # Добавляем недостающие эмодзи
 if 'search' not in EMOJIS:
@@ -19,6 +22,12 @@ if 'decipher' not in EMOJIS:
     EMOJIS['decipher'] = '🔓'
 if 'cipher' not in EMOJIS:
     EMOJIS['cipher'] = '🔐'
+if 'magic' not in EMOJIS:
+    EMOJIS['magic'] = '🔮'
+if 'crown' not in EMOJIS:
+    EMOJIS['crown'] = '👑'
+if 'zap' not in EMOJIS:
+    EMOJIS['zap'] = '⚡'
 
 bot = telebot.TeleBot(TOKEN)
 db = Database()
@@ -41,34 +50,13 @@ def cmd_start(message):
             receive_shared_cipher(message, cipher_id)
             return
     
-    welcome_text = f"""
-{EMOJIS['heart']} *Добро пожаловать в CipherBot!*
-
-✨ *НОВЫЕ ФУНКЦИИ:*
-• 🔐 Зашифровать сообщение (своим шифром)
-• 🔓 **УМНАЯ РАСШИФРОВКА** - определяет:
-   - Ваши личные шифры
-   - 🔢 Цезарь
-   - 🪞 Атбаш
-   - 🔑 Виженер
-   - ⚡ Азбуку Морзе
-   - ⌨️ Раскладку клавиатуры
-• 📋 Базовые шифры
-• 🔑 Мои шифры
-• ✏️ Переименовать шифр
-
-*Как начать:*
-1. Создайте шифр в разделе "Мои шифры"
-2. Для расшифровки просто отправьте сообщение
-3. Бот сам определит тип шифра!
-    """
-    
     bot.send_message(
         user.id, 
-        welcome_text, 
+        UIMessages.welcome_message(user.first_name or user.username or 'Пользователь'),
         parse_mode='Markdown',
         reply_markup=get_main_keyboard()
     )
+
 # ============================================
 # ПОЛУЧЕНИЕ ШИФРА ПО ССЫЛКЕ
 # ============================================
@@ -157,15 +145,7 @@ def decrypt_text(message):
     
     bot.send_message(
         user_id,
-        f"{EMOJIS['decipher']} *Умная расшифровка*\n\n"
-        f"{EMOJIS['search']} Отправьте зашифрованное сообщение.\n"
-        f"Я **сам определю** тип шифра:\n"
-        f"• Ваши личные шифры\n"
-        f"• 🔢 Цезарь\n"
-        f"• 🪞 Атбаш\n"
-        f"• 🔑 Виженер\n"
-        f"• ⚡ Азбука Морзе\n"
-        f"• ⌨️ Раскладка клавиатуры",
+        UIMessages.smart_decrypt_intro(),
         parse_mode='Markdown',
         reply_markup=get_back_keyboard()
     )
@@ -182,8 +162,7 @@ def show_ciphers(message):
         
         bot.send_message(
             user_id,
-            f"{EMOJIS['star']} *Создан ваш первый шифр!*\n\n"
-            f"{cipher.get_preview()}",
+            UIMessages.cipher_created(cipher.name, cipher.get_preview()),
             parse_mode='Markdown'
         )
         
@@ -196,33 +175,74 @@ def show_ciphers(message):
         parse_mode='Markdown',
         reply_markup=get_ciphers_keyboard(ciphers)
     )
-@bot.message_handler(func=lambda message: message.text == "📋 Базовые шифры")
-def basic_ciphers_menu(message):
-    """Меню базовых шифров"""
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['caesar']} Цезарь")
+def caesar_menu(message):
     user_id = message.from_user.id
     
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        types.InlineKeyboardButton("🔢 Цезарь", callback_data="basic_caesar"),
-        types.InlineKeyboardButton("🪞 Атбаш", callback_data="basic_atbash"),
-        types.InlineKeyboardButton("🔑 Виженер", callback_data="basic_vigenere"),
-        types.InlineKeyboardButton("« Назад", callback_data="back_to_main")
-    )
+    temp_data[f"basic_{user_id}"] = {
+        'type': 'caesar',
+        'step': 'waiting_text'
+    }
     
     bot.send_message(
         user_id,
-        f"📋 *Базовые шифры*\n\n"
-        f"Выберите тип шифра:\n\n"
-        f"🔢 *Цезарь* - сдвиг букв на 3 позиции\n"
-        f"🪞 *Атбаш* - зеркальный шифр (А=Я, Б=Ю)\n"
-        f"🔑 *Виженер* - шифр с ключевым словом",
+        f"{EMOJIS['caesar']} *Шифр Цезаря*\n\n"
+        f"Отправьте текст для шифрования (сдвиг 3):\n\n"
+        f"Пример: 'привет' → 'тузжёх'",
         parse_mode='Markdown',
-        reply_markup=keyboard
+        reply_markup=get_cancel_keyboard()
     )
 
-@bot.message_handler(func=lambda message: message.text == "⌨️ Раскладка")
-def keyboard_layout_menu(message):
-    """Меню раскладки клавиатуры"""
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['atbash']} Атбаш")
+def atbash_menu(message):
+    user_id = message.from_user.id
+    
+    temp_data[f"basic_{user_id}"] = {
+        'type': 'atbash',
+        'step': 'waiting_text'
+    }
+    
+    bot.send_message(
+        user_id,
+        f"{EMOJIS['atbash']} *Шифр Атбаш*\n\n"
+        f"Отправьте текст для шифрования (зеркальный):\n\n"
+        f"Пример: 'привет' → 'крсэъм'",
+        parse_mode='Markdown',
+        reply_markup=get_cancel_keyboard()
+    )
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['vigenere']} Виженер")
+def vigenere_menu(message):
+    user_id = message.from_user.id
+    
+    temp_data[f"basic_{user_id}"] = {
+        'type': 'vigenere',
+        'step': 'waiting_key'
+    }
+    
+    bot.send_message(
+        user_id,
+        f"{EMOJIS['vigenere']} *Шифр Виженера*\n\n"
+        f"Введите ключевое слово:",
+        parse_mode='Markdown',
+        reply_markup=get_cancel_keyboard()
+    )
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['morse']} Морзе")
+def morse_menu(message):
+    user_id = message.from_user.id
+    
+    bot.send_message(
+        user_id,
+        f"{EMOJIS['morse']} *Азбука Морзе*\n\n"
+        f"Выберите действие:",
+        parse_mode='Markdown',
+        reply_markup=get_morse_menu_keyboard()
+    )
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['keyboard']} Раскладка")
+def keyboard_menu(message):
     user_id = message.from_user.id
     
     temp_data[f"keyboard_{user_id}"] = {
@@ -231,36 +251,13 @@ def keyboard_layout_menu(message):
     
     bot.send_message(
         user_id,
-        f"⌨️ *Шифр раскладки клавиатуры*\n\n"
+        f"{EMOJIS['keyboard']} *Шифр раскладки клавиатуры*\n\n"
         f"Отправьте текст, и я сменю раскладку:\n"
         f"• Русский → Английский (пример: 'привет' → 'ghbdtn')\n"
         f"• Английский → Русский (пример: 'ghbdtn' → 'привет')\n\n"
         f"Просто отправьте любой текст!",
         parse_mode='Markdown',
-        reply_markup=get_back_keyboard()
-    )
-
-@bot.message_handler(func=lambda message: message.text == "⚡ Морзе")
-def morse_menu(message):
-    """Меню азбуки Морзе"""
-    user_id = message.from_user.id
-    
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        types.InlineKeyboardButton("📝 Текст → Морзе", callback_data="morse_encode"),
-        types.InlineKeyboardButton("⚡ Морзе → Текст", callback_data="morse_decode"),
-        types.InlineKeyboardButton("« Назад", callback_data="back_to_main")
-    )
-    
-    bot.send_message(
-        user_id,
-        f"⚡ *Азбука Морзе*\n\n"
-        f"Выберите действие:\n\n"
-        f"📝 *Текст → Морзе* - преобразует текст в сигналы\n"
-        f"⚡ *Морзе → Текст* - расшифрует сигналы в текст\n\n"
-        f"Поддерживаются буквы, цифры и знаки препинания!",
-        parse_mode='Markdown',
-        reply_markup=keyboard
+        reply_markup=get_cancel_keyboard()
     )
 
 @bot.message_handler(func=lambda message: message.text == f"{EMOJIS['share']} Поделиться")
@@ -290,52 +287,64 @@ def show_settings(message):
     ciphers = db.get_user_ciphers(user_id)
     history = db.get_history(user_id, limit=1)
     
-    stats_text = f"""
-{EMOJIS['info']} *Ваша статистика:*
-
-• Всего шифров: {len(ciphers)}
-• Последняя операция: {format_time(history[0]['created_at']) if history else 'нет'}
-    """
-    
     bot.send_message(
         user_id,
-        stats_text,
+        UIMessages.stats_message(
+            len(ciphers), 
+            len(db.get_history(user_id, limit=1000)),
+            format_time(history[0]['created_at']) if history else None
+        ),
         parse_mode='Markdown',
         reply_markup=get_settings_keyboard()
     )
 
 @bot.message_handler(func=lambda message: message.text == f"{EMOJIS['help']} Помощь")
 def show_help(message):
-    help_text = f"""
-{EMOJIS['help']} *Как пользоваться ботом*
-
-*📝 Команды:*
-• 🔐 Зашифровать - своим шифром
-• 🔓 Расшифровать - УМНЫЙ АВТОПОДБОР
-• 📋 Базовые шифры - отдельное меню
-• ⌨️ Раскладка - смена RU/EN
-• ⚡ Морзе - азбука Морзе
-• 🔑 Мои шифры - управление
-
-*🔍 Умная расшифровка:*
-Просто отправьте любое зашифрованное сообщение!
-Бот сам определит:
-- Ваши личные шифры
-- Цезарь, Атбаш, Виженер
-- Азбуку Морзе
-- Раскладку клавиатуры
-
-*📤 Поделиться:*
-1. Зайдите в "Мои шифры"
-2. Выберите шифр → "Поделиться"
-    """
-    
     bot.send_message(
         message.from_user.id,
-        help_text,
+        UIMessages.help_message(),
         parse_mode='Markdown',
         reply_markup=get_back_keyboard()
     )
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['back']} Назад")
+def go_back(message):
+    user_id = message.from_user.id
+    
+    # Очищаем все временные данные для пользователя
+    keys_to_delete = []
+    for key in temp_data:
+        if key.endswith(str(user_id)):
+            keys_to_delete.append(key)
+    
+    for key in keys_to_delete:
+        del temp_data[key]
+    
+    bot.send_message(
+        user_id,
+        f"{EMOJIS['heart']} Главное меню",
+        reply_markup=get_main_keyboard()
+    )
+
+@bot.message_handler(func=lambda message: message.text == f"{EMOJIS['error']} Отмена")
+def cancel_action(message):
+    user_id = message.from_user.id
+    
+    # Очищаем все временные данные для пользователя
+    keys_to_delete = []
+    for key in temp_data:
+        if key.endswith(str(user_id)):
+            keys_to_delete.append(key)
+    
+    for key in keys_to_delete:
+        del temp_data[key]
+    
+    bot.send_message(
+        user_id,
+        f"{EMOJIS['info']} Действие отменено",
+        reply_markup=get_main_keyboard()
+    )
+
 # ============================================
 # ОБРАБОТКА НАЖАТИЙ НА КНОПКИ
 # ============================================
@@ -400,8 +409,7 @@ def handle_callbacks(call):
         cipher_id = db.save_cipher(user_id, cipher)
         
         bot.edit_message_text(
-            f"{EMOJIS['success']} *Шифр создан!*\n\n"
-            f"{cipher.get_preview()}",
+            UIMessages.cipher_created(cipher.name, cipher.get_preview()),
             user_id,
             call.message.message_id,
             parse_mode='Markdown',
@@ -448,7 +456,8 @@ def handle_callbacks(call):
             parse_mode='Markdown'
         )
         return
-        # ===== ПОДЕЛИТЬСЯ ШИФРОМ =====
+    
+    # ===== ПОДЕЛИТЬСЯ ШИФРОМ =====
     if data.startswith("share_cipher_"):
         cipher_id = int(data.split("_")[2])
         cipher_data = db.get_cipher(cipher_id)
@@ -478,18 +487,11 @@ def handle_callbacks(call):
         bot_username = bot.get_me().username
         invite_link = f"https://t.me/{bot_username}?start=shared_cipher_{cipher_id}"
         
-        link_text = f"""
-{EMOJIS['link']} *Ссылка-приглашение:*
-
-Перешлите это сообщение другу:
-
-`{invite_link}`
-
-Когда друг перейдет по ссылке, он сможет добавить ваш шифр себе!
-        """
-        
         bot.edit_message_text(
-            link_text,
+            UIMessages.share_cipher(
+                Cipher.from_dict(db.get_cipher(cipher_id)).name,
+                link=invite_link
+            ),
             user_id,
             call.message.message_id,
             parse_mode='Markdown'
@@ -574,9 +576,7 @@ def handle_callbacks(call):
             bot.send_photo(
                 user_id,
                 photo=bio,
-                caption=f"{EMOJIS['qr']} *QR-код для шифра*\n\n"
-                        f"🔑 *{cipher.name}*\n\n"
-                        f"Друг может отсканировать этот код и получить шифр!",
+                caption=UIMessages.share_cipher(cipher.name, link=invite_link),
                 parse_mode='Markdown'
             )
             
@@ -615,21 +615,8 @@ def handle_callbacks(call):
         try:
             import_code = cipher.export_to_string()
             
-            code_text = f"""
-{EMOJIS['key']} *КОД ДЛЯ ИМПОРТА*
-
-Скопируйте этот код и отправьте другу:
-
-`{import_code}`
-
-*Как использовать:*
-1. Друг нажимает "Импорт" в меню
-2. Вставляет этот код
-3. Получает ваш шифр
-            """
-            
             bot.edit_message_text(
-                code_text,
+                UIMessages.share_cipher(cipher.name, code=import_code),
                 user_id,
                 call.message.message_id,
                 parse_mode='Markdown'
@@ -680,8 +667,7 @@ def handle_callbacks(call):
             new_id = db.save_cipher(user_id, cipher)
             
             bot.edit_message_text(
-                f"{EMOJIS['success']} *Шифр успешно добавлен!*\n\n"
-                f"{cipher.get_preview()}",
+                UIMessages.cipher_created(cipher.name, cipher.get_preview()),
                 user_id,
                 call.message.message_id,
                 parse_mode='Markdown'
@@ -719,7 +705,8 @@ def handle_callbacks(call):
             parse_mode='Markdown'
         )
         return
-        # ===== СМЕНА ШИФРА =====
+    
+    # ===== СМЕНА ШИФРА =====
     if data.startswith("change_cipher_"):
         cipher_id = int(data.split("_")[2])
         cipher_data = db.get_cipher(cipher_id)
@@ -825,71 +812,91 @@ def handle_callbacks(call):
         )
         return
     
-    # ===== ВЫБОР ВАРИАНТА РАСШИФРОВКИ =====
-    if data.startswith("choose_decrypt_"):
-        parts = data.split("_")
-        cipher_id = int(parts[2])
-        option_num = int(parts[3])
+    # ===== СТАТИСТИКА =====
+    if data == "show_stats":
+        ciphers = db.get_user_ciphers(user_id)
+        history = db.get_history(user_id, limit=1000)
         
-        if f"decrypt_results_{user_id}" in temp_data:
-            results = temp_data[f"decrypt_results_{user_id}"]['results']
-            encrypted = temp_data[f"decrypt_results_{user_id}"]['encrypted']
-            
-            selected = next((r for r in results if r['cipher_id'] == cipher_id), None)
-            
-            if selected:
-                db.add_to_history(user_id, selected['cipher_id'], selected['decrypted'], encrypted, 'decrypt')
-                
-                result_text = f"{EMOJIS['decipher']} *Расшифровано*\n\n"
-                result_text += f"🔑 Шифр: *{selected['cipher_name']}*\n"
-                result_text += f"📊 Точность: {selected['score']:.1f}%\n\n"
-                result_text += f"📝 Результат:\n`{selected['decrypted']}`\n\n"
-                
-                if selected['error_list']:
-                    result_text += f"⚠️ Неопознано: {', '.join(selected['error_list'][:10])}"
-                
-                bot.edit_message_text(
-                    result_text,
-                    user_id,
-                    call.message.message_id,
-                    parse_mode='Markdown'
-                )
-                
-                keyboard = types.InlineKeyboardMarkup()
-                keyboard.add(types.InlineKeyboardButton(
-                    f"{EMOJIS['decipher']} Ещё", 
-                    callback_data="decrypt_again"
-                ))
-                keyboard.add(types.InlineKeyboardButton(
-                    f"{EMOJIS['back']} Меню", 
-                    callback_data="back_to_main"
-                ))
-                
-                bot.send_message(
-                    user_id,
-                    "Что дальше?",
-                    reply_markup=keyboard
-                )
-                
-                del temp_data[f"decrypt_results_{user_id}"]
-                if f"decrypt_{user_id}" in temp_data:
-                    del temp_data[f"decrypt_{user_id}"]
+        total_encrypt = sum(1 for h in history if h['operation'] == 'encrypt')
+        total_decrypt = sum(1 for h in history if h['operation'] == 'decrypt')
         
-        return
-    
-    # ===== ОТМЕНА РАСШИФРОВКИ =====
-    if data == "cancel_decrypt":
-        if f"decrypt_results_{user_id}" in temp_data:
-            del temp_data[f"decrypt_results_{user_id}"]
-        if f"decrypt_{user_id}" in temp_data:
-            del temp_data[f"decrypt_{user_id}"]
+        stats_text = f"""
+{EMOJIS['info']} *Детальная статистика*
+
+📊 *Шифров:* {len(ciphers)}
+📝 *Операций:* {len(history)}
+  • Зашифровано: {total_encrypt}
+  • Расшифровано: {total_decrypt}
+
+⏰ *Последняя операция:* {format_time(history[0]['created_at']) if history else 'нет'}
+        """
         
         bot.edit_message_text(
-            f"{EMOJIS['info']} Отменено",
+            stats_text,
             user_id,
             call.message.message_id,
-            reply_markup=None
+            parse_mode='Markdown',
+            reply_markup=get_back_keyboard()
         )
+        return
+    
+    # ===== АЗБУКА МОРЗЕ =====
+    if data == "morse_encode":
+        temp_data[f"morse_{user_id}"] = {
+            'action': 'encode',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"{EMOJIS['morse']} *Текст в Морзе*\n\n"
+            f"Отправьте текст для преобразования в сигналы Морзе.\n\n"
+            f"Поддерживаются все буквы, цифры и знаки препинания!",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    if data == "morse_decode":
+        temp_data[f"morse_{user_id}"] = {
+            'action': 'decode',
+            'step': 'waiting_text'
+        }
+        bot.edit_message_text(
+            f"{EMOJIS['morse']} *Морзе в текст*\n\n"
+            f"Отправьте сигналы Морзе для расшифровки.\n\n"
+            f"Правила записи:\n"
+            f"• Точка: `.` или `·`\n"
+            f"• Тире: `-` или `_`\n"
+            f"• Пробел между буквами: один пробел\n"
+            f"• Разделитель слов: `/` или `|`\n\n"
+            f"Пример: `.... . .-.. .-.. --- / .-- --- .-. .-.. -..`",
+            user_id,
+            call.message.message_id,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # ===== ПОКАЗАТЬ ВСЕ РЕЗУЛЬТАТЫ РАСШИФРОВКИ =====
+    if data == "show_all_decrypt":
+        if f"decrypt_results_{user_id}" in temp_data:
+            results = temp_data[f"decrypt_results_{user_id}"]
+            
+            bot.edit_message_text(
+                UIMessages.decrypt_results(results, show_all=True),
+                user_id,
+                call.message.message_id,
+                parse_mode='Markdown'
+            )
+            
+            keyboard = get_decrypt_results_keyboard(len(results))
+            bot.send_message(
+                user_id,
+                "Что дальше?",
+                reply_markup=keyboard
+            )
+            
+            del temp_data[f"decrypt_results_{user_id}"]
+        
         return
     
     # ===== ПОВТОРНАЯ РАСШИФРОВКА =====
@@ -903,120 +910,11 @@ def handle_callbacks(call):
         })
         decrypt_text(fake_msg)
         return
-    
-    # ===== СТАТИСТИКА =====
-    if data == "show_stats":
-        ciphers = db.get_user_ciphers(user_id)
-        history = db.get_history(user_id, limit=1000)
-        
-        total_encrypt = sum(1 for h in history if h['operation'] == 'encrypt')
-        total_decrypt = sum(1 for h in history if h['operation'] == 'decrypt')
-        
-        stats_text = f"""
-{EMOJIS['info']} *Статистика*
-
-📊 Шифров: {len(ciphers)}
-📝 Операций: {len(history)}
-  • Зашифровано: {total_encrypt}
-  • Расшифровано: {total_decrypt}
-        """
-        
-        bot.edit_message_text(
-            stats_text,
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown',
-            reply_markup=get_back_keyboard()
-        )
-        return
-    
-    # ===== БАЗОВЫЕ ШИФРЫ =====
-    if data == "basic_caesar":
-        temp_data[f"basic_{user_id}"] = {
-            'type': 'caesar',
-            'step': 'waiting_text'
-        }
-        bot.edit_message_text(
-            f"🔢 *Шифр Цезаря*\n\n"
-            f"Отправьте текст для шифрования (сдвиг 3):",
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown'
-        )
-        return
-    
-    if data == "basic_atbash":
-        temp_data[f"basic_{user_id}"] = {
-            'type': 'atbash',
-            'step': 'waiting_text'
-        }
-        bot.edit_message_text(
-            f"🪞 *Шифр Атбаш*\n\n"
-            f"Отправьте текст для шифрования (зеркальный):",
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown'
-        )
-        return
-    
-    if data == "basic_vigenere":
-        temp_data[f"basic_{user_id}"] = {
-            'type': 'vigenere',
-            'step': 'waiting_key'
-        }
-        bot.edit_message_text(
-            f"🔑 *Шифр Виженера*\n\n"
-            f"Введите ключевое слово:",
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown'
-        )
-        return
-    
-    # ===== АЗБУКА МОРЗЕ =====
-    if data == "morse_encode":
-        temp_data[f"morse_{user_id}"] = {
-            'action': 'encode',
-            'step': 'waiting_text'
-        }
-        bot.edit_message_text(
-            f"⚡ *Азбука Морзе: Текст → Морзе*\n\n"
-            f"Отправьте текст для преобразования в сигналы Морзе.\n\n"
-            f"Поддерживаются:\n"
-            f"• Русские и английские буквы\n"
-            f"• Цифры 0-9\n"
-            f"• Знаки препинания: . , ? ! - / ( ) @\n"
-            f"• Эмодзи (будут проигнорированы)",
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown'
-        )
-        return
-    
-    if data == "morse_decode":
-        temp_data[f"morse_{user_id}"] = {
-            'action': 'decode',
-            'step': 'waiting_text'
-        }
-        bot.edit_message_text(
-            f"⚡ *Азбука Морзе: Морзе → Текст*\n\n"
-            f"Отправьте сигналы Морзе для расшифровки.\n\n"
-            f"Правила записи:\n"
-            f"• Точка: `.` или `·`\n"
-            f"• Тире: `-` или `_`\n"
-            f"• Пробел между буквами: один пробел\n"
-            f"• Разделитель слов: `/` или `|`\n\n"
-            f"Пример: `.... . .-.. .-.. --- / .-- --- .-. .-.. -..`",
-            user_id,
-            call.message.message_id,
-            parse_mode='Markdown'
-        )
-        return
 
 # ============================================
-# ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ - УМНАЯ РАСШИФРОВКА
+# ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ
 # ============================================
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: True, content_types=['text'])
 def handle_messages(message):
     user_id = message.from_user.id
     text = message.text
@@ -1025,24 +923,27 @@ def handle_messages(message):
     if text.startswith('/') or text in [f"{EMOJIS['cipher']} Зашифровать", 
                                          f"{EMOJIS['decipher']} Расшифровать",
                                          f"{EMOJIS['key']} Мои шифры",
-                                         f"📋 Базовые шифры",
-                                         f"⌨️ Раскладка",
-                                         f"⚡ Морзе",
+                                         f"{EMOJIS['caesar']} Цезарь",
+                                         f"{EMOJIS['atbash']} Атбаш",
+                                         f"{EMOJIS['vigenere']} Виженер",
+                                         f"{EMOJIS['morse']} Морзе",
+                                         f"{EMOJIS['keyboard']} Раскладка",
                                          f"{EMOJIS['share']} Поделиться",
                                          f"{EMOJIS['settings']} Настройки",
-                                         f"{EMOJIS['help']} Помощь"]:
+                                         f"{EMOJIS['help']} Помощь",
+                                         f"{EMOJIS['back']} Назад",
+                                         f"{EMOJIS['error']} Отмена"]:
         return
     
-    # ===== АЗБУКА МОРЗЕ (ОТДЕЛЬНЫЙ РЕЖИМ) =====
+    # ===== АЗБУКА МОРЗЕ =====
     if f"morse_{user_id}" in temp_data:
         morse_data = temp_data[f"morse_{user_id}"]
         
         if morse_data['action'] == 'encode':
-            # Текст → Морзе
             result = MorseCipher.text_to_morse(text)
             bot.reply_to(
                 message,
-                f"⚡ *Текст в Морзе*\n\n"
+                f"{EMOJIS['morse']} *Текст в Морзе*\n\n"
                 f"Исходный текст:\n`{text}`\n\n"
                 f"Результат:\n`{result}`",
                 parse_mode='Markdown'
@@ -1051,22 +952,21 @@ def handle_messages(message):
             return
         
         elif morse_data['action'] == 'decode':
-            # Морзе → Текст
-            result, unknown = MorseCipher.morse_to_text(text)
+            result, error = MorseCipher.morse_to_text(text)
             
-            if unknown:
+            if error:
                 bot.reply_to(
                     message,
-                    f"⚡ *Морзе в текст*\n\n"
+                    f"{EMOJIS['morse']} *Морзе в текст*\n\n"
                     f"Исходный код:\n`{text}`\n\n"
                     f"Результат:\n`{result}`\n\n"
-                    f"⚠️ Неопознанные символы: {unknown}",
+                    f"⚠️ {error}",
                     parse_mode='Markdown'
                 )
             else:
                 bot.reply_to(
                     message,
-                    f"⚡ *Морзе в текст*\n\n"
+                    f"{EMOJIS['morse']} *Морзе в текст*\n\n"
                     f"Исходный код:\n`{text}`\n\n"
                     f"Результат:\n`{result}`",
                     parse_mode='Markdown'
@@ -1074,7 +974,7 @@ def handle_messages(message):
             del temp_data[f"morse_{user_id}"]
             return
     
-    # ===== РАСКЛАДКА КЛАВИАТУРЫ (ОТДЕЛЬНЫЙ РЕЖИМ) =====
+    # ===== РАСКЛАДКА КЛАВИАТУРЫ =====
     if f"keyboard_{user_id}" in temp_data:
         # Проверяем, русский или английский
         ru_count = 0
@@ -1086,17 +986,15 @@ def handle_messages(message):
                 en_count += 1
         
         if ru_count > en_count:
-            # Больше русских букв -> конвертируем в английскую раскладку
             result = KeyboardCipher.ru_to_en(text)
             direction = "🇷🇺 → 🇬🇧"
         else:
-            # Больше английских -> конвертируем в русскую
             result = KeyboardCipher.en_to_ru(text)
             direction = "🇬🇧 → 🇷🇺"
         
         bot.reply_to(
             message,
-            f"⌨️ *Результат смены раскладки*\n\n"
+            f"{EMOJIS['keyboard']} *Результат смены раскладки*\n\n"
             f"{direction}:\n"
             f"`{result}`",
             parse_mode='Markdown'
@@ -1104,7 +1002,7 @@ def handle_messages(message):
         del temp_data[f"keyboard_{user_id}"]
         return
     
-    # ===== БАЗОВЫЕ ШИФРЫ (ОТДЕЛЬНЫЙ РЕЖИМ) =====
+    # ===== БАЗОВЫЕ ШИФРЫ =====
     if f"basic_{user_id}" in temp_data:
         basic_data = temp_data[f"basic_{user_id}"]
         
@@ -1112,7 +1010,7 @@ def handle_messages(message):
             result = BasicCiphers.caesar_encrypt(text)
             bot.reply_to(
                 message,
-                f"🔢 *Шифр Цезаря (сдвиг 3)*\n\n"
+                f"{EMOJIS['caesar']} *Шифр Цезаря (сдвиг 3)*\n\n"
                 f"Исходный текст:\n`{text}`\n\n"
                 f"Зашифровано:\n`{result}`",
                 parse_mode='Markdown'
@@ -1124,7 +1022,7 @@ def handle_messages(message):
             result = BasicCiphers.atbash_encrypt(text)
             bot.reply_to(
                 message,
-                f"🪞 *Шифр Атбаш (зеркальный)*\n\n"
+                f"{EMOJIS['atbash']} *Шифр Атбаш*\n\n"
                 f"Исходный текст:\n`{text}`\n\n"
                 f"Зашифровано:\n`{result}`",
                 parse_mode='Markdown'
@@ -1134,23 +1032,21 @@ def handle_messages(message):
         
         elif basic_data['type'] == 'vigenere':
             if basic_data.get('step') == 'waiting_key':
-                # Сохраняем ключ и ждем текст
                 basic_data['key'] = text
                 basic_data['step'] = 'waiting_text'
                 bot.reply_to(
                     message,
-                    f"🔑 Ключ *{text}* сохранен.\n\n"
+                    f"{EMOJIS['vigenere']} Ключ *{text}* сохранен.\n\n"
                     f"Теперь отправьте текст для шифрования:",
                     parse_mode='Markdown'
                 )
                 return
             elif basic_data.get('step') == 'waiting_text':
-                # Есть ключ и текст - шифруем
                 key = basic_data.get('key', 'ключ')
                 result = BasicCiphers.vigenere_encrypt(text, key)
                 bot.reply_to(
                     message,
-                    f"🔑 *Шифр Виженера*\n\n"
+                    f"{EMOJIS['vigenere']} *Шифр Виженера*\n\n"
                     f"Ключ: `{key}`\n"
                     f"Исходный текст:\n`{text}`\n\n"
                     f"Зашифровано:\n`{result}`",
@@ -1170,8 +1066,7 @@ def handle_messages(message):
                 
                 bot.reply_to(
                     message,
-                    f"{EMOJIS['success']} *Шифр успешно импортирован!*\n\n"
-                    f"{cipher.get_preview()}",
+                    UIMessages.cipher_created(cipher.name, cipher.get_preview()),
                     parse_mode='Markdown'
                 )
                 
@@ -1297,212 +1192,59 @@ def handle_messages(message):
         
         return
     
-    # ===== УМНАЯ РАСШИФРОВКА (ОСНОВНАЯ) =====
+    # ===== УМНАЯ РАСШИФРОВКА =====
     if f"decrypt_{user_id}" in temp_data:
         state = temp_data[f"decrypt_{user_id}"]
         
         if state['step'] == 'waiting_text':
             encrypted = text
-            results = []
             
-            # Отправляем сообщение о начале поиска
-            searching = bot.reply_to(message, f"{EMOJIS['search']} 🔍 Анализирую текст...")
+            # Отправляем сообщение о начале анализа
+            searching = bot.reply_to(
+                message,
+                f"{EMOJIS['magic']} *Анализирую текст...*\n"
+                f"Проверяю все возможные методы шифрования...",
+                parse_mode='Markdown'
+            )
             
-            # ===== 1. ПРОВЕРЯЕМ ЛИЧНЫЕ ШИФРЫ =====
+            # Получаем личные шифры пользователя
             ciphers = db.get_user_ciphers(user_id)
-            for cipher_info in ciphers:
-                cipher = Cipher.from_dict(cipher_info['data'])
-                decrypted, errors = cipher.decrypt(encrypted)
-                
-                total_chars = len(encrypted)
-                error_chars = len(errors)
-                score = (total_chars - error_chars) / total_chars * 100 if total_chars > 0 else 0
-                
-                if score > 30:  # Только если достаточно точный
-                    results.append({
-                        'type': '🔐 Личный шифр',
-                        'name': cipher_info['name'],
-                        'result': decrypted,
-                        'score': score,
-                        'errors': errors
-                    })
             
-            # ===== 2. ПРОВЕРЯЕМ АЗБУКУ МОРЗЕ =====
-            try:
-                morse_result, morse_unknown = MorseCipher.morse_to_text(encrypted)
-                if len(morse_result) > 0 and len(morse_unknown) == 0:
-                    results.append({
-                        'type': '⚡ Азбука Морзе',
-                        'name': 'Морзе',
-                        'result': morse_result,
-                        'score': 100,
-                        'errors': []
-                    })
-                elif len(morse_result) > 0 and len(morse_unknown) < len(encrypted) * 0.3:
-                    results.append({
-                        'type': '⚡ Азбука Морзе',
-                        'name': 'Морзе (с ошибками)',
-                        'result': morse_result,
-                        'score': 70,
-                        'errors': [morse_unknown]
-                    })
-            except:
-                pass
-            
-            # ===== 3. ПРОВЕРЯЕМ РАСКЛАДКУ КЛАВИАТУРЫ =====
-            ru_to_en = KeyboardCipher.ru_to_en(encrypted)
-            en_to_ru = KeyboardCipher.en_to_ru(encrypted)
-            
-            # Проверяем, содержит ли результат осмысленные слова
-            ru_words = sum(1 for c in en_to_ru if 'а' <= c <= 'я')
-            en_words = sum(1 for c in ru_to_en if 'a' <= c <= 'z')
-            
-            if ru_words > len(en_to_ru) * 0.5:
-                results.append({
-                    'type': '⌨️ Раскладка (EN→RU)',
-                    'name': 'Раскладка',
-                    'result': en_to_ru,
-                    'score': 80,
-                    'errors': []
-                })
-            
-            if en_words > len(ru_to_en) * 0.5:
-                results.append({
-                    'type': '⌨️ Раскладка (RU→EN)',
-                    'name': 'Раскладка',
-                    'result': ru_to_en,
-                    'score': 80,
-                    'errors': []
-                })
-            
-            # ===== 4. ПРОВЕРЯЕМ ШИФР ЦЕЗАРЯ =====
-            for shift in range(1, 33):
-                caesar_result = BasicCiphers.caesar_decrypt(encrypted, shift)
-                # Проверяем, похоже ли на русский текст
-                ru_letters = sum(1 for c in caesar_result if 'а' <= c <= 'я')
-                if ru_letters > len(caesar_result) * 0.7:
-                    results.append({
-                        'type': '🔢 Цезарь',
-                        'name': f'Цезарь (сдвиг {shift})',
-                        'result': caesar_result,
-                        'score': 85,
-                        'errors': []
-                    })
-                    break  # Нашли подходящий сдвиг
-            
-            # ===== 5. ПРОВЕРЯЕМ АТБАШ =====
-            atbash_result = BasicCiphers.atbash_decrypt(encrypted)
-            ru_letters = sum(1 for c in atbash_result if 'а' <= c <= 'я')
-            if ru_letters > len(atbash_result) * 0.7:
-                results.append({
-                    'type': '🪞 Атбаш',
-                    'name': 'Атбаш',
-                    'result': atbash_result,
-                    'score': 85,
-                    'errors': []
-                })
+            # Запускаем умный анализ
+            analyzer = SmartDecrypt(ciphers)
+            results = analyzer.analyze(encrypted)
             
             # Удаляем сообщение о поиске
             bot.delete_message(user_id, searching.message_id)
             
-            # Если ничего не нашли
             if not results:
-                bot.reply_to(
-                    message,
-                    f"{EMOJIS['error']} *Не удалось расшифровать*\n\n"
-                    f"Не найден подходящий метод расшифровки. Попробуйте:\n"
-                    f"• Использовать свои шифры из 'Мои шифры'\n"
-                    f"• Выбрать конкретный метод в меню 'Базовые шифры'\n"
-                    f"• Проверить раскладку клавиатуры",
+                bot.send_message(
+                    user_id,
+                    UIMessages.no_results_found(),
                     parse_mode='Markdown'
                 )
                 del temp_data[f"decrypt_{user_id}"]
                 return
             
-            # Сортируем по точности
-            results.sort(key=lambda x: x['score'], reverse=True)
+            # Сохраняем результаты
+            temp_data[f"decrypt_results_{user_id}"] = results
             
-            # Показываем результаты
-            response = f"{EMOJIS['decipher']} *Найденные варианты*\n\n"
+            # Показываем лучшие результаты
+            bot.send_message(
+                user_id,
+                UIMessages.decrypt_results(results, show_all=False),
+                parse_mode='Markdown',
+                reply_markup=get_decrypt_results_keyboard(len(results))
+            )
             
-            for i, res in enumerate(results[:5], 1):  # Показываем до 5 вариантов
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "📌"
-                response += f"{medal} *{res['type']}*"
-                if res['name'] != res['type']:
-                    response += f" - {res['name']}"
-                response += f"\n   Точность: {res['score']:.1f}%\n"
-                response += f"   Результат: `{res['result'][:100]}`"
-                if len(res['result']) > 100:
-                    response += "..."
-                response += "\n\n"
-            
-            # Если результатов много, предлагаем показать все
-            if len(results) > 5:
-                keyboard = types.InlineKeyboardMarkup()
-                keyboard.add(types.InlineKeyboardButton(
-                    "📋 Показать все варианты",
-                    callback_data="show_all_decrypt"
-                ))
-                bot.send_message(
-                    user_id,
-                    response,
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
-                )
-            else:
-                bot.send_message(
-                    user_id,
-                    response,
-                    parse_mode='Markdown'
-                )
-            
-            # Сохраняем результаты для детального просмотра
-            temp_data[f"decrypt_all_{user_id}"] = results
             del temp_data[f"decrypt_{user_id}"]
         
         return
     
-    # ===== ПОКАЗАТЬ ВСЕ ВАРИАНТЫ РАСШИФРОВКИ =====
-    if data == "show_all_decrypt":
-        if f"decrypt_all_{user_id}" in temp_data:
-            results = temp_data[f"decrypt_all_{user_id}"]
-            
-            response = f"{EMOJIS['decipher']} *Все варианты расшифровки*\n\n"
-            
-            for i, res in enumerate(results, 1):
-                response += f"{i}. *{res['type']}*"
-                if res['name'] != res['type']:
-                    response += f" - {res['name']}"
-                response += f"\n   Точность: {res['score']:.1f}%\n"
-                response += f"   Результат: `{res['result'][:50]}`"
-                if len(res['result']) > 50:
-                    response += "..."
-                response += "\n\n"
-                
-                # Разбиваем длинные сообщения
-                if len(response) > 3000:
-                    bot.send_message(user_id, response, parse_mode='Markdown')
-                    response = ""
-            
-            if response:
-                bot.send_message(user_id, response, parse_mode='Markdown')
-            
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton(
-                f"{EMOJIS['back']} Назад",
-                callback_data="back_to_main"
-            ))
-            bot.send_message(user_id, "Что дальше?", reply_markup=keyboard)
-            
-            del temp_data[f"decrypt_all_{user_id}"]
-        
-        return
-    
-    # ===== ЕСЛИ НИЧЕГО =====
+    # ===== ЕСЛИ НИЧЕГО НЕ ПОДОШЛО =====
     else:
         bot.reply_to(
             message,
-            f"{EMOJIS['info']} Используйте меню или /start\n"
-            f"Хотите расшифровать? Нажмите 🔓 Расшифровать"
-                )
-       
+            f"{EMOJIS['info']} Используйте меню для работы с ботом!\n"
+            f"Нажмите /start чтобы увидеть команды."
+        )
