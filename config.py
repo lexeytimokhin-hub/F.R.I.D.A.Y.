@@ -1,34 +1,64 @@
-# config.py
+# config.py - КОНФИГУРАЦИЯ БОТА
 import os
-TOKEN = os.environ.get('TOKEN', 'YOUR_BOT_TOKEN_HERE')  # Вставьте свой токен
-DB_NAME = 'ciphers.db'
-VERSION = '1.0.0'
 
-# Эмодзи для интерфейса
+# Токен бота (получи у @BotFather)
+TOKEN = os.environ.get('TOKEN', 'YOUR_BOT_TOKEN_HERE')
+DB_NAME = 'ciphers.db'
+VERSION = '2.0.0'
+
+# КРАСИВЫЕ ЭМОДЗИ ДЛЯ ИНТЕРФЕЙСА
 EMOJIS = {
+    # Основные
     'success': '✅',
     'error': '❌',
     'warning': '⚠️',
-    'cipher': '🔐',
-    'decipher': '🔓',
-    'key': '🔑',
-    'settings': '⚙️',
     'info': 'ℹ️',
     'heart': '❤️',
     'star': '⭐',
-    'lock': '🔒',
-    'unlock': '🔓',
-    'save': '💾',
-    'delete': '🗑️',
-    'edit': '✏️',
+    'menu': '📋',
     'back': '🔙',
     'next': '➡️',
     'prev': '⬅️',
-    'menu': '📋',
-    'help': '❓',
-    'link': '🔗',
+    
+    # Шифрование
+    'cipher': '🔐',
+    'decipher': '🔓',
+    'key': '🔑',
+    'search': '🔍',
+    'lock': '🔒',
+    'unlock': '🔓',
+    
+    # Действия
+    'save': '💾',
+    'delete': '🗑️',
+    'edit': '✏️',
     'share': '📤',
     'import': '📥',
-    'qr': '📱'
+    'settings': '⚙️',
+    'help': '❓',
+    'link': '🔗',
+    'qr': '📱',
+    
+    # Базовые шифры (ДОБАВЛЕНО!)
+    'caesar': '🔢',
+    'atbash': '🪞',
+    'vigenere': '🔑',
+    'morse': '⚡',
+    'keyboard': '⌨️',
+    
+    # Дополнительные (ДОБАВЛЕНО!)
+    'magic': '🔮',
+    'crown': '👑',
+    'zap': '⚡',
+    'gold': '🥇',
+    'silver': '🥈',
+    'bronze': '🥉',
+    'medal': '🏅',
+    'time': '⏰',
+    'stats': '📊',
+    'users': '👥',
+    'fire': '🔥',
+    'sparkles': '✨',
+    'trophy': '🏆',
+    'rainbow': '🌈',
 }
-
